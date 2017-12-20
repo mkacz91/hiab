@@ -1,6 +1,5 @@
 #include "prefix.h"
 #include <iostream>
-#include <ctime>
 #include "opengl.h"
 #include "files.h"
 #include "math.h"
