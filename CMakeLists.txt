@@ -20,6 +20,10 @@ add_custom_command(
 
 add_library(glad ${GLAD_SOURCES})
 
+if (WIN32)
+  add_definitions(-DHIAB_WINDOWS)
+endif (WIN32)
+
 include_directories(
   ${GLAD_DIR}
   ${GLFW3_INCLUDE_DIR}
