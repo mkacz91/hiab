@@ -39,6 +39,6 @@ target_link_libraries(hiab
 
 if (WIN32)
   get_property(GLFW3_DLL TARGET glfw3 PROPERTY IMPORTED_LOCATION)
-  add_custom_command(TARGET szynka POST_BUILD COMMAND
-    ${CMAKE_COMMAND} -E copy_if_different "${GLFW3_DLL}" "$<TARGET_FILE_DIR:szynka>")
+  add_custom_command(TARGET hiab POST_BUILD COMMAND
+  ${CMAKE_COMMAND} -E copy_if_different "${GLFW3_DLL}" "$<TARGET_FILE_DIR:hiab>")
 endif (WIN32)

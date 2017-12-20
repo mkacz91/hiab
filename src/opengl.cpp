@@ -30,7 +30,7 @@ GLuint gl_load_shader(const string& name, GLenum shader_type)
 
     // Upload source and compile
     char const* source_data = source.c_str();
-    int source_size = source.length();
+    int source_size = (int)source.length();
     glShaderSource(shader, 1, &source_data, &source_size);
     glCompileShader(shader);
 

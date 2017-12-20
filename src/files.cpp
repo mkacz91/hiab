@@ -32,7 +32,7 @@ std::ifstream open_file_for_reading(string const& name)
 string read_all_text_from_file(string const& name)
 {
     auto istr = open_file_for_reading(name);
-    int start_pos = istr.tellg();
+    auto start_pos = (int)istr.tellg();
     istr.seekg(0, std::istream::end);
     int stream_size = (int)istr.tellg() - start_pos;
     string result(stream_size, '\0');
