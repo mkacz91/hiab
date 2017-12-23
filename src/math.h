@@ -10,6 +10,16 @@ using std::tan;
 
 constexpr float PI = 3.14159265359f;
 
+struct vec2f
+{
+    float x, y;
+};
+
+struct vec3f
+{
+    float x, y, z;
+};
+
 struct mat4f
 {
     float m00, m01, m02, m03;
@@ -47,5 +57,9 @@ struct mat4f
     static mat4f perspective_bounds(
         float left, float right, float bottom, float top, float near, float far);
 };
+
+inline mat4f eye4f() { return mat4f().load_identity(); }
+
+mat4f operator * (mat4f const& A, mat4f const& B);
 
 } // namespace hiab

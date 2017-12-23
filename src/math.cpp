@@ -126,4 +126,28 @@ mat4f mat4f::perspective_bounds(
         0, 0, -1, 0);
 }
 
+mat4f operator * (mat4f const& A, mat4f const& B)
+{
+#define mat4f_mult_cell(i, j) \
+    A.m##i##0 * B.m0##j + \
+    A.m##i##1 * B.m1##j + \
+    A.m##i##2 * B.m2##j + \
+    A.m##i##3 * B.m3##j
+
+#define mat4f_mult_row(i) \
+    mat4f_mult_cell(i, 0), \
+    mat4f_mult_cell(i, 1), \
+    mat4f_mult_cell(i, 2), \
+    mat4f_mult_cell(i, 3)
+
+    return mat4f(
+        mat4f_mult_row(0),
+        mat4f_mult_row(1),
+        mat4f_mult_row(2),
+        mat4f_mult_row(3));
+
+#undef mat4_mult_row
+#undef mat4_mult_cell
+}
+
 } // namespace hiab
