@@ -3,12 +3,14 @@
 #include "opengl.h"
 #include "files.h"
 #include "math.h"
+#include "scene.h"
 
 using namespace hiab;
 
 int main(int argc, char** argv)
 {
     add_file_search_prefix("../src/shaders");
+    add_file_search_prefix("../obj");
 
     GLFWwindow* window;
 
@@ -27,33 +29,21 @@ int main(int argc, char** argv)
 
     try
     {
-        float positions[] =
-        {
-            -1, -1, -1,
-            1, -1, -1,
-            0, 1, -1,
+        Scene scene;
+        int obj_count = load_scene_objects(&scene, "bunny");
 
-            -1, -1, -1,
-            1, -1, -1,
-            0, 0, 1,
-
-            1, -1, -1,
-            0, 1, -1,
-            0, 0, 1,
-
-            0, 1, -1,
-            -1, -1, -1,
-            0, 0, 1
-        };
-        GLuint vertices;
-        glGenBuffers(1, &vertices);
-        glBindBuffer(GL_ARRAY_BUFFER, vertices);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
-
-        GLuint program = gl_link_program("basic_v", "uniform4_f");
-        GLint transform_uniform = gl_get_uniform_location(program, "transform");
-        GLint color_uniform = gl_get_uniform_location(program, "color");
-        GLint position_attrib = gl_get_attrib_location(program, "position");
+        GLuint object_program = gl_link_program(
+            "scene_object_v", "scene_object_f");
+        GLint object_camera_uniform = gl_get_uniform_location(
+            object_program, "camera");
+        GLint object_transform_uniform = gl_get_uniform_location(
+            object_program, "transform");
+        GLint object_position_attrib = gl_get_attrib_location(
+            object_program, "position");
+        GLint object_normal_attrib = gl_get_attrib_location(
+            object_program, "normal");
+        GLint object_uv_attrib = gl_get_attrib_location(
+            object_program, "uv");
 
         while (!glfwWindowShouldClose(window))
         {
@@ -64,32 +54,39 @@ int main(int argc, char** argv)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
 
-            auto transform = mat4f().load_identity()
-                .rotate_x(2 * (float)glfwGetTime())
-                .rotate_z(0.5f * (float)glfwGetTime())
-                .translate(0, 0, -3)
-                .apply(mat4f::perspective_aov(window_width, window_height, 1, 10, 0.5f * PI));
+            mat4f projection = mat4f::perspective_aov(
+                window_width, window_height, 0.25, 50, 0.5f * PI);
+            mat4f view = eye4f().translate(0, 0, -3);
+            mat4f camera = projection * view;
 
-            glUseProgram(program);
-            glUniformMatrix4fv(transform_uniform, 1, GL_TRUE, transform.p());
-            glEnableVertexAttribArray(position_attrib);
-            glBindBuffer(GL_ARRAY_BUFFER, vertices);
-            glVertexAttribPointer(position_attrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-            glUniform4f(color_uniform, 1.0f, 1.0f, 1.0f, 1.0f);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
-            glUniform4f(color_uniform, 1.0f, 0.0f, 0.0f, 1.0f);
-            glDrawArrays(GL_TRIANGLES, 3, 3);
-            glUniform4f(color_uniform, 0.0f, 1.0f, 0.0f, 1.0f);
-            glDrawArrays(GL_TRIANGLES, 6, 3);
-            glUniform4f(color_uniform, 0.0f, 0.0f, 1.0f, 1.0f);
-            glDrawArrays(GL_TRIANGLES, 9, 3);
-            glDisableVertexAttribArray(position_attrib);
+            mat4f transform = eye4f()
+                .rotate_x(2 * (float)glfwGetTime())
+                .rotate_z(0.5f * (float)glfwGetTime());
+
+            glUseProgram(object_program);
+            glUniformMatrix4fv(object_camera_uniform, 1, GL_TRUE, camera.p());
+            glUniformMatrix4fv(object_transform_uniform, 1, GL_TRUE, transform.p());
+            glEnableVertexAttribArray(object_position_attrib);
+            glEnableVertexAttribArray(object_normal_attrib);
+            for (SceneObject const* object : scene.objects)
+            {
+                glBindBuffer(GL_ARRAY_BUFFER, object->buffers.positions);
+                glVertexAttribPointer(
+                    object_position_attrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+                glBindBuffer(GL_ARRAY_BUFFER, object->buffers.normals);
+                glVertexAttribPointer(
+                    object_normal_attrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+                glDrawArrays(GL_TRIANGLES, 0, object->vertex_count);
+            }
+            glDisableVertexAttribArray(object_position_attrib);
+            glDisableVertexAttribArray(object_normal_attrib);
 
             glfwSwapBuffers(window);
         }
 
-        glDeleteProgram(program);
-        glDeleteBuffers(1, &vertices);
+        clear_scene(&scene);
+        glDeleteProgram(object_program);
     }
     catch (std::exception& e)
     {

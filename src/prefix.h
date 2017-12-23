@@ -14,6 +14,12 @@ inline string quote(const string& s) { return "\"" + s + "\""; }
 inline string squote(const string& s) { return "'" + s + "'"; }
 inline string paren(const string& s) { return "(" + s + ")"; }
 
+template <typename T>
+T const& view_as(void const* data)
+{
+    return *reinterpret_cast<T const*>(data);
+}
+
 class not_implemented : public std::logic_error
 {
 public:
