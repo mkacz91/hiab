@@ -4,6 +4,9 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 11)
 
+set(TINYOBJLOADER_COMPILATION_SHARED ON)
+add_subdirectory("subs/tinyobjloader")
+
 project(Hiab)
 
 find_package(OpenGL REQUIRED)
@@ -25,6 +28,7 @@ if (WIN32)
 endif (WIN32)
 
 include_directories(
+  subs/include
   ${GLAD_DIR}
   ${GLFW3_INCLUDE_DIR}
 )
@@ -34,6 +38,7 @@ add_executable(hiab ${HIAB_SOURCES})
 target_link_libraries(hiab
   glfw3
   glad
+  tinyobjloader
   ${OPENGL_gl_LIBRARY}
 )
 
