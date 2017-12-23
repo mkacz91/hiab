@@ -45,6 +45,13 @@ int main(int argc, char** argv)
         GLint object_uv_attrib = gl_get_attrib_location(
             object_program, "uv");
 
+        GLuint counter_buffer;
+        GLuint counter = 0;
+        glGenBuffers(1, &counter_buffer);
+        glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, counter_buffer);
+        glBufferData(
+            GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &counter, GL_DYNAMIC_DRAW);
+
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();
@@ -62,6 +69,11 @@ int main(int argc, char** argv)
             mat4f transform = eye4f()
                 .rotate_x(2 * (float)glfwGetTime())
                 .rotate_z(0.5f * (float)glfwGetTime());
+
+            counter = 0;
+            glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, counter_buffer);
+            glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &counter);
+            glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, counter_buffer);
 
             glUseProgram(object_program);
             glUniformMatrix4fv(object_camera_uniform, 1, GL_TRUE, camera.p());
@@ -83,6 +95,9 @@ int main(int argc, char** argv)
             glDisableVertexAttribArray(object_normal_attrib);
 
             glfwSwapBuffers(window);
+
+            glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(counter), (void*)&counter);
+            std::cout << "Rendered fragments: " << counter << std::endl;
         }
 
         clear_scene(&scene);
