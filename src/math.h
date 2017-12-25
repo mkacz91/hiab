@@ -4,6 +4,7 @@
 
 namespace hiab {
 
+using std::sqrt;
 using std::sin;
 using std::cos;
 using std::tan;
@@ -18,7 +19,59 @@ struct vec2f
 struct vec3f
 {
     float x, y, z;
+
+    vec3f& operator -= (vec3f const& u)
+    {
+        x -= u.x; y -= u.y; z -= u.z;
+        return *this;
+    }
+
+    vec3f& operator *= (float s)
+    {
+        x *= s; y *= s; z *= s;
+        return *this;
+    }
+
+    vec3f& operator /= (float s)
+    {
+        return operator *= (1.0f / s);
+    }
 };
+
+inline vec3f operator - (vec3f u, vec3f const& v)
+{
+    return u -= v;
+}
+
+inline vec3f operator / (vec3f u, float s)
+{
+    return u /= s;
+}
+
+inline float length_sq(vec3f const& u)
+{
+    return u.x * u.x + u.y * u.y + u.z * u.z;
+}
+
+inline float length(vec3f const& u)
+{
+    return sqrt(length_sq(u));
+}
+
+inline vec3f normalize(vec3f const& u)
+{
+    return u / length(u);
+}
+
+inline vec3f cross(vec3f const& u, vec3f const& v)
+{
+    return
+    {
+        u.y * v.z - u.z * v.y,
+        u.z * v.x - u.x * v.z,
+        u.x * v.y - u.y * v.x
+    };
+}
 
 struct mat4f
 {
@@ -49,6 +102,8 @@ struct mat4f
 
     mat4f& scale(float x, float y, float z);
 
+    mat4f& scale(float s) { return scale(s, s, s); }
+
     float const* p() const { return reinterpret_cast<float const*>(this); }
 
     static mat4f perspective_aov(
@@ -61,5 +116,7 @@ struct mat4f
 inline mat4f eye4f() { return mat4f().load_identity(); }
 
 mat4f operator * (mat4f const& A, mat4f const& B);
+
+vec3f face_normal(vec3f const& a, vec3f const& b, vec3f const& c);
 
 } // namespace hiab

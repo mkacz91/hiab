@@ -150,4 +150,9 @@ mat4f operator * (mat4f const& A, mat4f const& B)
 #undef mat4_mult_cell
 }
 
+vec3f face_normal(vec3f const& a, vec3f const& b, vec3f const& c)
+{
+    return normalize(cross(b - a, c - a));
+}
+
 } // namespace hiab
