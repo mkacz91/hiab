@@ -22,6 +22,7 @@ struct create_scene_object_closure
 SceneObject* create_scene_object(create_scene_object_closure& c, to::shape_t& shape)
 {
     c.positions.clear();
+    c.positions.reserve(shape.mesh.indices.size());
     for (auto& index : shape.mesh.indices)
         c.positions.push_back(view_as<vec3f>(&c.attrib.vertices[3 * index.vertex_index]));
     int face_count = (int)c.positions.size() / 3;
@@ -30,6 +31,7 @@ SceneObject* create_scene_object(create_scene_object_closure& c, to::shape_t& sh
         return nullptr;
 
     c.normals.clear();
+    c.normals.reserve(shape.mesh.indices.size());
     if (shape.mesh.indices[0].normal_index != -1)
     {
         for (auto& index : shape.mesh.indices)
@@ -45,6 +47,7 @@ SceneObject* create_scene_object(create_scene_object_closure& c, to::shape_t& sh
     bool uvs_present = shape.mesh.indices[0].texcoord_index != -1;
     if (uvs_present)
     {
+        c.uvs.reserve(shape.mesh.indices.size());
         for (auto& index : shape.mesh.indices)
             c.uvs.push_back(view_as<vec2f>(&c.attrib.texcoords[2 * index.texcoord_index]));
     }
