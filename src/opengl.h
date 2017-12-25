@@ -26,7 +26,7 @@ private:
 
 #define gl_error_guard(call) \
     gl_if_error (call) \
-        throw ::hiab::gl_exception("Error during " + #call, error);
+        throw ::hiab::gl_exception("Error during " #call, error);
 
 GLuint gl_load_shader(const string& name, GLenum shader_type);
 
