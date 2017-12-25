@@ -10,27 +10,86 @@ namespace hiab {
 void init_renderer(Renderer* r)
 {
     r->framebuffer_width = r->framebuffer_height = 0;
-    r->object_program = new ObjectProgram;
-    glGenBuffers(RendererBuffers::COUNT, reinterpret_cast<GLuint*>(&r->buffers));
+    r->framebuffer_size_changed = true;
+
+    r->programs.object = new ObjectProgram;
+    r->programs.heads = new HeadsProgram;
+
+    glGenBuffers(
+        Renderer::BUFFER_COUNT, reinterpret_cast<GLuint*>(&r->buffers));
+
+    GLfloat viewport_vertices[] =
+    {
+         0.0f,  3.1f,
+        -2.1f, -1.1f,
+         2.1f, -1.1f
+    };
+    glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
+    glBufferData(GL_ARRAY_BUFFER,
+        sizeof(viewport_vertices), &viewport_vertices, GL_STATIC_DRAW);
+
+    glGenTextures(
+        Renderer::TEXTURE_COUNT, reinterpret_cast<GLuint*>(&r->textures));
+
+    glBindTexture(GL_TEXTURE_2D, r->textures.heads);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glGenFramebuffers(
+        Renderer::FRAMEBUFFER_COUNT, reinterpret_cast<GLuint*>(&r->framebuffers));
 }
 
 void close_renderer(Renderer* r)
 {
-    delete r->object_program;
-    glDeleteBuffers(RendererBuffers::COUNT, reinterpret_cast<GLuint*>(&r->buffers));
+    auto programs = reinterpret_cast<ShaderProgram**>(&r->programs);
+    for (int i = 0; i < Renderer::PROGRAM_COUNT; ++i)
+        delete programs[i];
+
+    glDeleteBuffers(
+        Renderer::BUFFER_COUNT, reinterpret_cast<GLuint*>(&r->buffers));
+    glDeleteTextures(
+        Renderer::TEXTURE_COUNT, reinterpret_cast<GLuint*>(&r->textures));
+    glDeleteFramebuffers(
+        Renderer::FRAMEBUFFER_COUNT, reinterpret_cast<GLuint*>(&r->framebuffers));
 }
 
 void set_framebuffer_size(Renderer* r, int width, int height)
 {
+    r->framebuffer_size_changed =
+        r->framebuffer_size_changed ||
+        r->framebuffer_width != width || r->framebuffer_height != height;
     r->framebuffer_width = width;
     r->framebuffer_height = height;
+}
+
+void apply_framebuffer_size_changes(Renderer* r)
+{
+    if (!r->framebuffer_size_changed)
+        return;
+    r->framebuffer_size_changed = false;
+    int width = r->framebuffer_width, height = r->framebuffer_height;
+
+    glBindTexture(GL_TEXTURE_2D, r->textures.heads);
+    glTexImage2D(GL_TEXTURE_2D, 0,
+        GL_R32UI, width, height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glBindFramebuffer(GL_FRAMEBUFFER, r->framebuffers.clear_heads);
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+        r->textures.heads, 0);
 }
 
 void render(Renderer* r, Scene const* scene)
 {
     float t = (float)glfwGetTime();
 
+    apply_framebuffer_size_changes(r);
     glViewport(0, 0, r->framebuffer_width, r->framebuffer_height);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, r->framebuffers.clear_heads);
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(0.05f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -51,10 +110,12 @@ void render(Renderer* r, Scene const* scene)
         GL_ATOMIC_COUNTER_BUFFER, sizeof(counter), &counter,
         GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, r->buffers.counter);
+    glBindImageTexture(
+        0, r->textures.heads, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
-    glUseProgram(r->object_program->id);
+    glUseProgram(r->programs.object->id);
     {
-        auto program = r->object_program;
+        auto program = r->programs.object;
         glUniformMatrix4fv(program->camera, 1, GL_TRUE, camera.p());
         glUniformMatrix4fv(program->transform, 1, GL_TRUE, transform.p());
         glEnableVertexAttribArray(program->position);
@@ -72,6 +133,23 @@ void render(Renderer* r, Scene const* scene)
         }
         glDisableVertexAttribArray(program->position);
         glDisableVertexAttribArray(program->normal);
+    }
+
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, r->textures.heads);
+
+    glUseProgram(r->programs.heads->id);
+    {
+        auto program = r->programs.heads;
+        glUniform1i(program->heads, 0);
+        glEnableVertexAttribArray(program->position);
+        glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
+        glVertexAttribPointer(
+            program->position, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDisableVertexAttribArray(program->position);
     }
 
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.counter);

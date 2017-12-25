@@ -7,18 +7,42 @@ namespace hiab {
 
 struct Scene;
 struct ObjectProgram;
-
-struct RendererBuffers
-{
-    static constexpr int COUNT = 1;
-    GLuint counter = 0;
-};
+struct HeadsProgram;
 
 struct Renderer
 {
     int framebuffer_width, framebuffer_height;
-    ObjectProgram* object_program;
-    RendererBuffers buffers;
+    bool framebuffer_size_changed;
+
+    struct
+    {
+        ObjectProgram* object;
+        HeadsProgram* heads;
+    } programs;
+    static constexpr int PROGRAM_COUNT =
+        sizeof(Renderer::programs) / sizeof(void*);
+
+    struct
+    {
+        GLuint viewport_vertices;
+        GLuint counter;
+    } buffers;
+    static constexpr int BUFFER_COUNT =
+        sizeof(Renderer::buffers) / sizeof(GLuint);
+
+    struct
+    {
+        GLuint heads;
+    } textures;
+    static constexpr int TEXTURE_COUNT =
+        sizeof(Renderer::textures) / sizeof(GLuint);
+
+    struct
+    {
+        GLuint clear_heads;
+    } framebuffers;
+    static constexpr int FRAMEBUFFER_COUNT =
+        sizeof(Renderer::framebuffers) / sizeof(GLuint);
 };
 
 void init_renderer(Renderer* renderer);

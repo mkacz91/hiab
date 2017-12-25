@@ -1,4 +1,6 @@
-attribute vec4 position;
+#version 420
+
+in vec4 position;
 
 void main()
 {

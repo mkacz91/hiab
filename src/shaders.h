@@ -27,4 +27,12 @@ struct ObjectProgram : public ShaderProgram
     ObjectProgram();
 };
 
+struct HeadsProgram : public ShaderProgram
+{
+    GLint heads;
+    GLint position;
+
+    HeadsProgram();
+};
+
 } // namespace hiab

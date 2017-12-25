@@ -27,4 +27,11 @@ ObjectProgram::ObjectProgram() :
     load_attrib(uv);
 }
 
+HeadsProgram::HeadsProgram()
+    : ShaderProgram("position4_v", "heads_f")
+{
+    load_uniform(heads);
+    load_attrib(position);
+}
+
 } // namespace hiab
