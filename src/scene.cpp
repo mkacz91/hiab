@@ -39,8 +39,14 @@ SceneObject* create_scene_object(create_scene_object_closure& c, to::shape_t& sh
     }
     else
     {
-        // TODO: Compute normals from faces
-        throw not_implemented_here;
+        auto position = c.positions.begin();
+        while (position != c.positions.end())
+        {
+            vec3f normal = face_normal(*position++, *position++, *position++);
+            c.normals.push_back(normal);
+            c.normals.push_back(normal);
+            c.normals.push_back(normal);
+        }
     }
 
     c.uvs.clear();

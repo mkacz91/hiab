@@ -41,6 +41,7 @@ void render(Renderer* r, Scene const* scene)
     mat4f view = eye4f().translate(0, 0, -3);
     mat4f camera = projection * view;
     mat4f transform = eye4f()
+        .scale(0.02f)
         .rotate_x(2 * t)
         .rotate_z(0.5f * t);
 

@@ -33,7 +33,6 @@ int main(int argc, char** argv)
 
     try
     {
-        load_scene_objects(&scene, "bunny");
         init_renderer(&renderer);
         {
             int width, height;
@@ -41,6 +40,7 @@ int main(int argc, char** argv)
             framebuffer_size_changed(window, width, height);
             glfwSetFramebufferSizeCallback(window, framebuffer_size_changed);
         }
+        load_scene_objects(&scene, "teapot");
 
         while (!glfwWindowShouldClose(window))
         {
