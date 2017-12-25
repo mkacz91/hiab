@@ -7,6 +7,11 @@
 
 using namespace hiab;
 
+Scene scene;
+Renderer renderer;
+
+void framebuffer_size_changed(GLFWwindow* window, int width, int height);
+
 int main(int argc, char** argv)
 {
     add_file_search_prefix("../src/shaders");
@@ -17,8 +22,7 @@ int main(int argc, char** argv)
     if (!glfwInit())
         return 1;
 
-    int window_width = 800, window_height = 600;
-    window = glfwCreateWindow(window_width, window_height, "Hiab", nullptr, nullptr);
+    window = glfwCreateWindow(800, 600, "Hiab", nullptr, nullptr);
     if (!window)
     {
         glfwTerminate();
@@ -29,16 +33,18 @@ int main(int argc, char** argv)
 
     try
     {
-        Scene scene;
         load_scene_objects(&scene, "bunny");
-
-        Renderer renderer;
         init_renderer(&renderer);
+        {
+            int width, height;
+            glfwGetFramebufferSize(window, &width, &height);
+            framebuffer_size_changed(window, width, height);
+            glfwSetFramebufferSizeCallback(window, framebuffer_size_changed);
+        }
 
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();
-            set_framebuffer_size(&renderer, window_width, window_height);
             render(&renderer, &scene);
             glfwSwapBuffers(window);
         }
@@ -54,4 +60,10 @@ int main(int argc, char** argv)
 
     glfwTerminate();
     return 0;
+}
+
+void framebuffer_size_changed(GLFWwindow* window, int width, int height)
+{
+    std::cout << "Framebuffer size: " << width << " " << height << std::endl;
+    set_framebuffer_size(&renderer, width, height);
 }
