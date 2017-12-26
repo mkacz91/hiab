@@ -13,6 +13,14 @@ struct Renderer
 {
     int framebuffer_width, framebuffer_height;
     bool framebuffer_size_changed;
+    int avg_layers_per_pixel;
+
+    struct
+    {
+        GLuint size;
+        GLuint xmask;
+        GLuint yshift;
+    } node_buffer_info;
 
     struct
     {
@@ -25,13 +33,14 @@ struct Renderer
     struct
     {
         GLuint viewport_vertices;
-        GLuint counter;
+        GLuint node_alloc_pointer;
     } buffers;
     static constexpr int BUFFER_COUNT =
         sizeof(Renderer::buffers) / sizeof(GLuint);
 
     struct
     {
+        GLuint nodes;
         GLuint heads;
     } textures;
     static constexpr int TEXTURE_COUNT =

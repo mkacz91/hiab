@@ -20,6 +20,7 @@ struct ObjectProgram : public ShaderProgram
 {
     GLint camera;
     GLint transform;
+    GLint nodes_info;
     GLint position;
     GLint normal;
     GLint uv;

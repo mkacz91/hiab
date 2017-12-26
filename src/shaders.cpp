@@ -22,6 +22,7 @@ ObjectProgram::ObjectProgram() :
 {
     load_uniform(camera);
     load_uniform(transform);
+    load_uniform(nodes_info);
     load_attrib(position);
     load_attrib(normal);
     load_attrib(uv);

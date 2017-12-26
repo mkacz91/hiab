@@ -12,6 +12,8 @@ void init_renderer(Renderer* r)
     r->framebuffer_width = r->framebuffer_height = 0;
     r->framebuffer_size_changed = true;
 
+    r->avg_layers_per_pixel = 2;
+
     r->programs.object = new ObjectProgram;
     r->programs.heads = new HeadsProgram;
 
@@ -28,12 +30,17 @@ void init_renderer(Renderer* r)
     glBufferData(GL_ARRAY_BUFFER,
         sizeof(viewport_vertices), &viewport_vertices, GL_STATIC_DRAW);
 
-    glGenTextures(
-        Renderer::TEXTURE_COUNT, reinterpret_cast<GLuint*>(&r->textures));
+    auto textures = reinterpret_cast<GLuint*>(&r->textures);
+    glGenTextures(Renderer::TEXTURE_COUNT, textures);
 
-    glBindTexture(GL_TEXTURE_2D, r->textures.heads);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    for (int i = 0; i < Renderer::TEXTURE_COUNT; ++i)
+    {
+        glBindTexture(GL_TEXTURE_2D, textures[i]);
+        // Default filtering modes may cause the textures to be incomplete under
+        // certain circumstances. Overwrite with safer ones, to spare debugging.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
 
     glGenFramebuffers(
         Renderer::FRAMEBUFFER_COUNT, reinterpret_cast<GLuint*>(&r->framebuffers));
@@ -76,6 +83,20 @@ void apply_framebuffer_size_changes(Renderer* r)
     glFramebufferTexture2D(
         GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
         r->textures.heads, 0);
+
+    int min_node_buffer_size = r->avg_layers_per_pixel * width * height;
+    int node_buffer_size_exp = 8;
+    while (1 << node_buffer_size_exp < min_node_buffer_size)
+        ++node_buffer_size_exp;
+    int node_buffer_width_exp = (node_buffer_size_exp + 1) / 2;
+    int node_buffer_height_exp = node_buffer_size_exp - node_buffer_width_exp;
+    r->node_buffer_info.size = 1 << node_buffer_size_exp;
+    r->node_buffer_info.xmask = ~((~0u) << node_buffer_width_exp);
+    r->node_buffer_info.yshift = node_buffer_width_exp;
+    glBindTexture(GL_TEXTURE_2D, r->textures.nodes);
+    gl_error_guard(glTexImage2D(GL_TEXTURE_2D, 0,
+        GL_RGBA32UI, 1 << node_buffer_width_exp, 1 << node_buffer_height_exp, 0,
+        GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr));
 }
 
 void render(Renderer* r, Scene const* scene)
@@ -104,20 +125,23 @@ void render(Renderer* r, Scene const* scene)
         .rotate_x(2 * t)
         .rotate_z(0.5f * t);
 
-    GLuint counter = 0;
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.counter);
-    glBufferData(
-        GL_ATOMIC_COUNTER_BUFFER, sizeof(counter), &counter,
-        GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, r->buffers.counter);
+    GLuint node_alloc_pointer = 1;
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.node_alloc_pointer);
+    glBufferData(GL_ATOMIC_COUNTER_BUFFER,
+        sizeof(node_alloc_pointer), &node_alloc_pointer, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, r->buffers.node_alloc_pointer);
+
     glBindImageTexture(
-        0, r->textures.heads, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+        0, r->textures.nodes, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32UI);
+    glBindImageTexture(
+        1, r->textures.heads, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
     glUseProgram(r->programs.object->id);
     {
         auto program = r->programs.object;
         glUniformMatrix4fv(program->camera, 1, GL_TRUE, camera.p());
         glUniformMatrix4fv(program->transform, 1, GL_TRUE, transform.p());
+        glUniform3uiv(program->nodes_info, 1, (GLuint*)&r->node_buffer_info);
         glEnableVertexAttribArray(program->position);
         glEnableVertexAttribArray(program->normal);
         for (SceneObject const* object : scene->objects)
@@ -152,9 +176,12 @@ void render(Renderer* r, Scene const* scene)
         glDisableVertexAttribArray(program->position);
     }
 
-    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.counter);
-    glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(counter), (void*)&counter);
-    std::cout << "Rendered fragments: " << counter << std::endl;
+    glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.node_alloc_pointer);
+    glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER,
+        0, sizeof(node_alloc_pointer), (void*)&node_alloc_pointer);
+    std::cout << "Rendered fragments: " << node_alloc_pointer << std::endl;
+    std::cout << "Average nodes: " <<
+        node_alloc_pointer / float(r->framebuffer_width * r->framebuffer_height) << std::endl;
 }
 
 } // namespace hiab;

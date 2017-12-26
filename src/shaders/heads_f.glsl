@@ -6,6 +6,6 @@ out vec4 color;
 
 void main()
 {
-     uint value = texelFetch(heads, ivec2(gl_FragCoord), 0).r;
-     color = vec4(float(min(5, value)) / 5.0);
+    uvec4 value = texelFetch(heads, ivec2(gl_FragCoord), 0);
+    color = unpackUnorm4x8(value.r);
 }
