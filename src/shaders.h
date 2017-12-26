@@ -28,6 +28,15 @@ struct ObjectProgram : public ShaderProgram
     ObjectProgram();
 };
 
+struct Layer0Program : public ShaderProgram
+{
+    GLint heads;
+    GLint nodes;
+    GLint position;
+
+    Layer0Program();
+};
+
 struct HeadsProgram : public ShaderProgram
 {
     GLint heads;

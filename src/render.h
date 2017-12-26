@@ -7,6 +7,7 @@ namespace hiab {
 
 struct Scene;
 struct ObjectProgram;
+struct Layer0Program;
 struct HeadsProgram;
 
 struct Renderer
@@ -25,6 +26,7 @@ struct Renderer
     struct
     {
         ObjectProgram* object;
+        Layer0Program* layer0;
         HeadsProgram* heads;
     } programs;
     static constexpr int PROGRAM_COUNT =

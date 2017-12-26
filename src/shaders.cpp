@@ -28,6 +28,14 @@ ObjectProgram::ObjectProgram() :
     load_attrib(uv);
 }
 
+Layer0Program::Layer0Program() :
+    ShaderProgram("position4_v", "layer0_f")
+{
+    load_uniform(nodes);
+    load_uniform(heads);
+    load_attrib(position);
+}
+
 HeadsProgram::HeadsProgram()
     : ShaderProgram("position4_v", "heads_f")
 {

@@ -15,6 +15,7 @@ void init_renderer(Renderer* r)
     r->avg_layers_per_pixel = 2;
 
     r->programs.object = new ObjectProgram;
+    r->programs.layer0 = new Layer0Program;
     r->programs.heads = new HeadsProgram;
 
     glGenBuffers(
@@ -161,18 +162,24 @@ void render(Renderer* r, Scene const* scene)
 
     glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, r->textures.heads);
-
-    glUseProgram(r->programs.heads->id);
+    glUseProgram(r->programs.layer0->id);
     {
-        auto program = r->programs.heads;
-        glUniform1i(program->heads, 0);
+        auto program = r->programs.layer0;
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, r->textures.nodes);
+        glUniform1i(program->nodes, 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, r->textures.heads);
+        glUniform1i(program->heads, 1);
+
         glEnableVertexAttribArray(program->position);
         glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
         glVertexAttribPointer(
             program->position, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
         glDrawArrays(GL_TRIANGLES, 0, 3);
+
         glDisableVertexAttribArray(program->position);
     }
 
