@@ -22,7 +22,7 @@ ObjectProgram::ObjectProgram() :
 {
     load_uniform(camera);
     load_uniform(transform);
-    load_uniform(nodes_info);
+    load_uniform(heap_info);
     load_attrib(position);
     load_attrib(normal);
     load_attrib(uv);
@@ -33,6 +33,7 @@ Layer0Program::Layer0Program() :
 {
     load_uniform(nodes);
     load_uniform(heads);
+    load_uniform(heap_info);
     load_attrib(position);
 }
 

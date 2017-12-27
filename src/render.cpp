@@ -85,19 +85,31 @@ void apply_framebuffer_size_changes(Renderer* r)
         GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
         r->textures.heads, 0);
 
-    int min_node_buffer_size = r->avg_layers_per_pixel * width * height;
-    int node_buffer_size_exp = 8;
-    while (1 << node_buffer_size_exp < min_node_buffer_size)
-        ++node_buffer_size_exp;
-    int node_buffer_width_exp = (node_buffer_size_exp + 1) / 2;
-    int node_buffer_height_exp = node_buffer_size_exp - node_buffer_width_exp;
-    r->node_buffer_info.size = 1 << node_buffer_size_exp;
-    r->node_buffer_info.xmask = ~((~0u) << node_buffer_width_exp);
-    r->node_buffer_info.yshift = node_buffer_width_exp;
+    int min_heap_size = r->avg_layers_per_pixel * width * height;
+    int heap_size_exp = 8;
+    while (1 << heap_size_exp < min_heap_size)
+        ++heap_size_exp;
+    int heap_width_exp = (heap_size_exp + 1) / 2;
+    int heap_height_exp = heap_size_exp - heap_width_exp;
+    int heap_width = 1 << heap_width_exp;
+    int heap_height = 1 << heap_height_exp;
+    r->heap_info.size = 1 << heap_size_exp;
+    r->heap_info.width = heap_width;
+    r->heap_info.xmask = ~((~0u) << heap_width_exp);
+    r->heap_info.yshift = heap_width_exp;
+
     glBindTexture(GL_TEXTURE_2D, r->textures.nodes);
     gl_error_guard(glTexImage2D(GL_TEXTURE_2D, 0,
-        GL_RGBA32UI, 1 << node_buffer_width_exp, 1 << node_buffer_height_exp, 0,
+        GL_RGBA32UI, heap_width, heap_height, 0,
         GL_RGBA_INTEGER, GL_UNSIGNED_INT, nullptr));
+    glBindTexture(GL_TEXTURE_2D, r->textures.depth_arrays);
+    gl_error_guard(glTexImage2D(GL_TEXTURE_2D, 0,
+        GL_R32F, heap_width, heap_height, 0,
+        GL_RED, GL_FLOAT, nullptr));
+
+    glBindTexture(GL_TEXTURE_2D, r->textures.array_ranges);
+    glTexImage2D(GL_TEXTURE_2D, 0,
+        GL_R32UI, width, height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 }
 
 void render(Renderer* r, Scene const* scene)
@@ -114,7 +126,6 @@ void render(Renderer* r, Scene const* scene)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(0.05f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
 
     mat4f projection = mat4f::perspective_aov(
         r->framebuffer_width, r->framebuffer_height,
@@ -142,7 +153,7 @@ void render(Renderer* r, Scene const* scene)
         auto program = r->programs.object;
         glUniformMatrix4fv(program->camera, 1, GL_TRUE, camera.p());
         glUniformMatrix4fv(program->transform, 1, GL_TRUE, transform.p());
-        glUniform3uiv(program->nodes_info, 1, (GLuint*)&r->node_buffer_info);
+        glUniform4uiv(program->heap_info, 1, (GLuint*)&r->heap_info);
         glEnableVertexAttribArray(program->position);
         glEnableVertexAttribArray(program->normal);
         for (SceneObject const* object : scene->objects)
@@ -160,6 +171,11 @@ void render(Renderer* r, Scene const* scene)
         glDisableVertexAttribArray(program->normal);
     }
 
+    GLuint array_alloc_pointer = 1;
+    glBindTexture(GL_TEXTURE_2D, r->textures.array_alloc_pointer);
+    glTexImage2D(GL_TEXTURE_2D, 0,
+        GL_R32UI, 1, 1, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &array_alloc_pointer);
+
     glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
 
     glUseProgram(r->programs.layer0->id);
@@ -172,6 +188,15 @@ void render(Renderer* r, Scene const* scene)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, r->textures.heads);
         glUniform1i(program->heads, 1);
+
+        glBindImageTexture(0, r->textures.array_alloc_pointer,
+            0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+        glBindImageTexture(1, r->textures.array_ranges,
+            0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+        glBindImageTexture(2, r->textures.depth_arrays,
+            0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+
+        glUniform4uiv(program->heap_info, 1, (GLuint*)&r->heap_info);
 
         glEnableVertexAttribArray(program->position);
         glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);

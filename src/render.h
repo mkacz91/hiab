@@ -10,18 +10,21 @@ struct ObjectProgram;
 struct Layer0Program;
 struct HeadsProgram;
 
+struct HeapInfo
+{
+    GLuint size;
+    GLuint width;
+    GLuint xmask;
+    GLuint yshift;
+};
+
 struct Renderer
 {
     int framebuffer_width, framebuffer_height;
     bool framebuffer_size_changed;
     int avg_layers_per_pixel;
 
-    struct
-    {
-        GLuint size;
-        GLuint xmask;
-        GLuint yshift;
-    } node_buffer_info;
+    HeapInfo heap_info;
 
     struct
     {
@@ -44,6 +47,9 @@ struct Renderer
     {
         GLuint nodes;
         GLuint heads;
+        GLuint array_alloc_pointer;
+        GLuint array_ranges;
+        GLuint depth_arrays;
     } textures;
     static constexpr int TEXTURE_COUNT =
         sizeof(Renderer::textures) / sizeof(GLuint);
