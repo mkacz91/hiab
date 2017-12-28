@@ -60,9 +60,9 @@ mat4f& mat4f::apply(mat4f const& other)
 #undef mat4f_apply_compute_cell
 }
 
-mat4f& mat4f::translate(float x, float y, float z)
+mat4f& mat4f::translate(vec3f const& translation)
 {
-    m03 += x; m13 += y; m23 += z;
+    m03 += translation.x; m13 += translation.y; m23 += translation.z;
     return *this;
 }
 
@@ -109,10 +109,10 @@ mat4f& mat4f::scale(float x, float y, float z)
 }
 
 mat4f mat4f::perspective_aov(
-    int width, int height, float near, float far, float aov)
+    float aspect, float near, float far, float aov)
 {
     float y_max = near * tan(0.5f * aov);
-    float x_max = width > 0 && height > 0 ? width * y_max / height : y_max;
+    float x_max = aspect * y_max;
     return perspective_bounds(-x_max, x_max, -y_max, y_max, near, far);
 }
 
@@ -124,6 +124,16 @@ mat4f mat4f::perspective_bounds(
         0, 2 * near / (top - bottom), (top + bottom) / (top - bottom), 0,
         0, 0, -(far + near) / (far - near), -2 * far * near / (far - near),
         0, 0, -1, 0);
+}
+
+vec3f mat4f::transform_v(vec3f const& u) const
+{
+    return
+    {
+        m00 * u.x + m01 * u.y + m02 * u.z,
+        m10 * u.x + m11 * u.y + m12 * u.z,
+        m20 * u.x + m21 * u.y + m22 * u.z
+    };
 }
 
 mat4f operator * (mat4f const& A, mat4f const& B)

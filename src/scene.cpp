@@ -117,6 +117,23 @@ int load_scene_objects(Scene* scene, string const& name)
     return (int)scene->objects.size() - prev_object_count;
 }
 
+void init_scene_time(Scene* scene, double t)
+{
+    scene->double_time = t;
+    scene->time = (float)t;
+    scene->dt = 1.0f / 30.0f;
+}
+
+void advance_scene_time(Scene* scene, double t)
+{
+    double prev_time = scene->double_time;
+    scene->double_time = t;
+    scene->time = (float)t;
+    scene->dt = max((float)(t - prev_time), 0.0f);
+}
+
+void advance_scene_time(Scene* scene);
+
 void clear_scene(Scene* scene)
 {
     for (auto object : scene->objects)
@@ -126,6 +143,59 @@ void clear_scene(Scene* scene)
         delete object;
     }
     scene->objects.clear();
+}
+
+void move_camera(Camera* camera, vec3f translation)
+{
+    if (translation == vec3f { 0, 0, 0 })
+        return;
+    mat4f rotation = eye4f()
+        .rotate_x(camera->angle.x)
+        .rotate_y(camera->angle.y);
+    camera->position += rotation.transform_v(translation) / camera->scale;;
+}
+
+void rotate_camera(Camera* camera, vec2f rotation)
+{
+    camera->angle += rotation;
+    camera->angle.y = fmod(camera->angle.y , TWO_PI);
+    camera->angle.x = clamp(camera->angle.x, -QUARTER_PI, QUARTER_PI);
+}
+
+void set_camera_viewport(Camera* camera, int width, int height)
+{
+    camera->aspect = float(max(width, 1)) / float(max(height, 1));
+}
+
+void set_camera_clip_planes(Camera* camera, float near, float far)
+{
+    constexpr float MARGIN = 0.1f;
+    camera->near = max(near, MARGIN);
+    camera->far = max(far, camera->near + MARGIN);
+}
+
+void apply_camera_view_matrix(mat4f& matrix, Camera const* camera)
+{
+    matrix
+        .translate(-camera->position)
+        .rotate_y(-camera->angle.y)
+        .rotate_x(-camera->angle.x)
+        .scale(camera->scale);
+}
+
+void apply_camera_projection_matrix(mat4f& matrix, Camera const* camera)
+{
+    matrix.apply(mat4f::perspective_aov(
+        camera->aspect, camera->near, camera->far, camera->aov));
+}
+
+mat4f get_camera_matrix(Camera const* camera)
+{
+    mat4f matrix;
+    matrix.load_identity();
+    apply_camera_view_matrix(matrix, camera);
+    apply_camera_projection_matrix(matrix, camera);
+    return matrix;
 }
 
 } // namespace hiab

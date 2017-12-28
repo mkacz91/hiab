@@ -4,6 +4,10 @@
 #include <glad.h>
 #include <GLFW/glfw3.h>
 
+// On Windows, we get these from minwindef.h:
+#undef near
+#undef far
+
 namespace hiab {
 
 class gl_exception : public std::runtime_error

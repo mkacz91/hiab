@@ -9,8 +9,8 @@ namespace hiab {
 
 void init_renderer(Renderer* r)
 {
-    r->framebuffer_width = r->framebuffer_height = 0;
-    r->framebuffer_size_changed = true;
+    r->viewport_width = r->viewport_height = 0;
+    r->viewport_changed = true;
 
     r->avg_layers_per_pixel = 2;
 
@@ -61,21 +61,21 @@ void close_renderer(Renderer* r)
         Renderer::FRAMEBUFFER_COUNT, reinterpret_cast<GLuint*>(&r->framebuffers));
 }
 
-void set_framebuffer_size(Renderer* r, int width, int height)
+void set_renderer_viewport(Renderer* r, int width, int height)
 {
-    r->framebuffer_size_changed =
-        r->framebuffer_size_changed ||
-        r->framebuffer_width != width || r->framebuffer_height != height;
-    r->framebuffer_width = width;
-    r->framebuffer_height = height;
+    r->viewport_changed =
+        r->viewport_changed ||
+        r->viewport_width != width || r->viewport_height != height;
+    r->viewport_width = width;
+    r->viewport_height = height;
 }
 
-void apply_framebuffer_size_changes(Renderer* r)
+void apply_viewport_changes(Renderer* r)
 {
-    if (!r->framebuffer_size_changed)
+    if (!r->viewport_changed)
         return;
-    r->framebuffer_size_changed = false;
-    int width = r->framebuffer_width, height = r->framebuffer_height;
+    r->viewport_changed = false;
+    int width = r->viewport_width, height = r->viewport_height;
 
     glBindTexture(GL_TEXTURE_2D, r->textures.heads);
     glTexImage2D(GL_TEXTURE_2D, 0,
@@ -112,12 +112,11 @@ void apply_framebuffer_size_changes(Renderer* r)
         GL_R32UI, width, height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 }
 
-void render(Renderer* r, Scene const* scene)
+void render(Renderer* r, Scene const* scene, Camera const* camera)
 {
     float t = (float)glfwGetTime();
 
-    apply_framebuffer_size_changes(r);
-    glViewport(0, 0, r->framebuffer_width, r->framebuffer_height);
+    apply_viewport_changes(r);
 
     glBindFramebuffer(GL_FRAMEBUFFER, r->framebuffers.clear_heads);
     glClearColor(0, 0, 0, 0);
@@ -127,15 +126,11 @@ void render(Renderer* r, Scene const* scene)
     glClearColor(0.05f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    mat4f projection = mat4f::perspective_aov(
-        r->framebuffer_width, r->framebuffer_height,
-        0.25, 50, 0.5f * PI);
-    mat4f view = eye4f().translate(0, 0, -3);
-    mat4f camera = projection * view;
+    mat4f camera_matrix = get_camera_matrix(camera);
     mat4f transform = eye4f()
-        .scale(0.02f)
-        .rotate_x(2 * t)
-        .rotate_z(0.5f * t);
+        .scale(0.02f);
+        //.rotate_x(2 * t)
+        //.rotate_z(0.5f * t);
 
     GLuint node_alloc_pointer = 1;
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.node_alloc_pointer);
@@ -151,7 +146,7 @@ void render(Renderer* r, Scene const* scene)
     glUseProgram(r->programs.object->id);
     {
         auto program = r->programs.object;
-        glUniformMatrix4fv(program->camera, 1, GL_TRUE, camera.p());
+        glUniformMatrix4fv(program->camera, 1, GL_TRUE, camera_matrix.p());
         glUniformMatrix4fv(program->transform, 1, GL_TRUE, transform.p());
         glUniform4uiv(program->heap_info, 1, (GLuint*)&r->heap_info);
         glEnableVertexAttribArray(program->position);
@@ -213,7 +208,8 @@ void render(Renderer* r, Scene const* scene)
         0, sizeof(node_alloc_pointer), (void*)&node_alloc_pointer);
     std::cout << "Rendered fragments: " << node_alloc_pointer << std::endl;
     std::cout << "Average nodes: " <<
-        node_alloc_pointer / float(r->framebuffer_width * r->framebuffer_height) << std::endl;
+        node_alloc_pointer / float(r->viewport_width * r->viewport_height) << std::endl;
+    std::cout << "Dt: " << scene->dt * 1000 << std::endl;
 }
 
 } // namespace hiab;

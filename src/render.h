@@ -6,6 +6,7 @@
 namespace hiab {
 
 struct Scene;
+struct Camera;
 struct ObjectProgram;
 struct Layer0Program;
 struct HeadsProgram;
@@ -20,8 +21,8 @@ struct HeapInfo
 
 struct Renderer
 {
-    int framebuffer_width, framebuffer_height;
-    bool framebuffer_size_changed;
+    int viewport_width, viewport_height;
+    bool viewport_changed;
     int avg_layers_per_pixel;
 
     HeapInfo heap_info;
@@ -66,8 +67,8 @@ void init_renderer(Renderer* renderer);
 
 void close_renderer(Renderer* renderer);
 
-void set_framebuffer_size(Renderer* r, int width, int height);
+void set_renderer_viewport(Renderer* renderer, int width, int height);
 
-void render(Renderer* renderer, Scene const* scene);
+void render(Renderer* renderer, Scene const* scene, Camera const* camera);
 
 } // namespace hiab
