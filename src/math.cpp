@@ -2,17 +2,6 @@
 
 namespace hiab {
 
-mat4f::mat4f(
-        float m00, float m01, float m02, float m03,
-        float m10, float m11, float m12, float m13,
-        float m20, float m21, float m22, float m23,
-        float m30, float m31, float m32, float m33) :
-    m00(m00), m01(m01), m02(m02), m03(m03),
-    m10(m10), m11(m11), m12(m12), m13(m13),
-    m20(m20), m21(m21), m22(m22), m23(m23),
-    m30(m30), m31(m31), m32(m32), m33(m33)
-{ }
-
 mat4f& mat4f::load_identity()
 {
     m00 = 1; m01 = 0; m02 = 0; m03 = 0;
@@ -119,11 +108,13 @@ mat4f mat4f::perspective_aov(
 mat4f mat4f::perspective_bounds(
     float left, float right, float bottom, float top, float near, float far)
 {
-    return mat4f(
+    return
+    {
         2 * near / (right - left), 0, (right + left) / (right - left), 0,
         0, 2 * near / (top - bottom), (top + bottom) / (top - bottom), 0,
         0, 0, -(far + near) / (far - near), -2 * far * near / (far - near),
-        0, 0, -1, 0);
+        0, 0, -1, 0
+    };
 }
 
 vec3f mat4f::transform_v(vec3f const& u) const
@@ -150,11 +141,13 @@ mat4f operator * (mat4f const& A, mat4f const& B)
     mat4f_mult_cell(i, 2), \
     mat4f_mult_cell(i, 3)
 
-    return mat4f(
+    return
+    {
         mat4f_mult_row(0),
         mat4f_mult_row(1),
         mat4f_mult_row(2),
-        mat4f_mult_row(3));
+        mat4f_mult_row(3)
+    };
 
 #undef mat4_mult_row
 #undef mat4_mult_cell
