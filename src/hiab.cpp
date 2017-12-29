@@ -129,8 +129,6 @@ void apply_camera_movement()
         translation.x -= 1;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         translation.x += 1;
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera_panning = !camera_panning;
 
     translation *= 6.0f * scene.dt;
     move_camera(&camera, translation);
@@ -138,12 +136,21 @@ void apply_camera_movement()
 
 void on_key(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    switch (key)
     {
-        if (flying_around)
-            set_flying_around(false);
-        else
-            glfwSetWindowShouldClose(window, true);
+        case GLFW_KEY_SPACE:
+            if (action == GLFW_PRESS)
+                camera_panning = !camera_panning;
+        break;
+        case GLFW_KEY_ESCAPE:
+            if (action == GLFW_PRESS)
+            {
+                if (flying_around)
+                    set_flying_around(false);
+                else
+                    glfwSetWindowShouldClose(window, true);
+            }
+        break;
     }
 }
 
