@@ -127,10 +127,6 @@ void render(Renderer* r, Scene const* scene, Camera const* camera)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     mat4f camera_matrix = get_camera_matrix(camera);
-    mat4f transform = eye4f()
-        .scale(0.02f);
-        //.rotate_x(2 * t)
-        //.rotate_z(0.5f * t);
 
     GLuint node_alloc_pointer = 1;
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.node_alloc_pointer);
@@ -147,12 +143,14 @@ void render(Renderer* r, Scene const* scene, Camera const* camera)
     {
         auto program = r->programs.object;
         glUniformMatrix4fv(program->camera, 1, GL_TRUE, camera_matrix.p());
-        glUniformMatrix4fv(program->transform, 1, GL_TRUE, transform.p());
         glUniform4uiv(program->heap_info, 1, (GLuint*)&r->heap_info);
         glEnableVertexAttribArray(program->position);
         glEnableVertexAttribArray(program->normal);
         for (SceneObject const* object : scene->objects)
         {
+            glUniformMatrix4fv(program->transform, 1, GL_TRUE,
+                object->transform.p());
+
             glBindBuffer(GL_ARRAY_BUFFER, object->buffers.positions);
             glVertexAttribPointer(
                 program->position, 3, GL_FLOAT, GL_FALSE, 0, nullptr);

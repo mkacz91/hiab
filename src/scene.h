@@ -21,6 +21,8 @@ struct SceneObject
     string name;
     int vertex_count;
     SceneObjectBuffers buffers;
+    box3f bounds;
+    mat4f transform;
 };
 
 struct Scene

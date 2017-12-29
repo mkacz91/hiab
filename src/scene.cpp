@@ -86,6 +86,8 @@ SceneObject* create_scene_object(create_scene_object_closure& c, to::shape_t& sh
     object->name = shape.name.empty() ? c.filename : c.filename + "/" + shape.name;
     object->vertex_count = vertex_count;
     object->buffers = buffers;
+    object->bounds = get_bounds(c.positions);
+    object->transform.load_identity();
 
     return object;
 }

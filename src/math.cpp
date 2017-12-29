@@ -153,6 +153,21 @@ mat4f operator * (mat4f const& A, mat4f const& B)
 #undef mat4_mult_cell
 }
 
+mat4f get_box_mapping_to_symunit(box3f const& box)
+{
+    float s = 1.0f / max(box_diameter(box));
+    if (isinf(s))
+        s = 1.0f;
+    vec3f t = -s * box_center(box);
+    return
+    {
+        s, 0, 0, t.x,
+        0, s, 0, t.y,
+        0, 0, s, t.z,
+        0, 0, 0, 1
+    };
+}
+
 vec3f face_normal(vec3f const& a, vec3f const& b, vec3f const& c)
 {
     return normalize(cross(b - a, c - a));

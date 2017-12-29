@@ -53,7 +53,17 @@ int main(int argc, char** argv)
             on_resize(window, width, height);
             glfwSetFramebufferSizeCallback(window, on_resize);
         }
+
         load_scene_objects(&scene, "teapot");
+        {
+            box3f bounds;
+            bounds.clear();
+            for (auto const* object : scene.objects)
+                bounds.expand(object->bounds);
+            mat4f transform = get_box_mapping_to_symunit(bounds);
+            for (auto* object : scene.objects)
+                object->transform = transform;
+        }
 
         glfwSetKeyCallback(window, on_key);
         glfwSetMouseButtonCallback(window, on_mouse_button);

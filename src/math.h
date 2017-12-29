@@ -2,18 +2,24 @@
 
 #include "prefix.h"
 #include <cmath>
+#include <limits>
+
+#undef INFINITY
 
 namespace hiab {
 
+using std::abs;
 using std::sqrt;
 using std::sin;
 using std::cos;
 using std::tan;
+using std::isinf;
 
 constexpr float QUARTER_PI = 0.78539816339f;
 constexpr float HALF_PI = 1.57079632679f;
 constexpr float PI = 3.14159265359f;
 constexpr float TWO_PI = 6.28318530718f;
+constexpr float INFINITY = std::numeric_limits<float>::infinity();
 
 template <typename T>
 T const& min(T const& a, T const& b)
@@ -25,6 +31,14 @@ template <typename T>
 T const& max(T const& a, T const& b)
 {
     return a > b ? a : b;
+}
+
+template <typename T>
+T const& max(T const& a, T const& b, T const& c)
+{
+    return a > b
+        ? (a > c ? a : c)
+        : (b > c ? b : c);
 }
 
 template <typename T>
@@ -91,6 +105,16 @@ inline vec3f operator - (vec3f u, vec3f const& v)
     return u -= v;
 }
 
+inline vec3f operator + (vec3f u, vec3f const& v)
+{
+    return u += v;
+}
+
+inline vec3f operator * (float s, vec3f u)
+{
+    return u *= s;
+}
+
 inline vec3f operator / (vec3f u, float s)
 {
     return u /= s;
@@ -119,6 +143,26 @@ inline vec3f cross(vec3f const& u, vec3f const& v)
         u.z * v.x - u.x * v.z,
         u.x * v.y - u.y * v.x
     };
+}
+
+inline vec3f min(vec3f const& u, vec3f const& v)
+{
+    return { min(u.x, v.x), min(u.y, v.y), min(u.z, v.z) };
+}
+
+inline vec3f max(vec3f const& u, vec3f const& v)
+{
+    return { max(u.x, v.x), max(u.y, v.y), max(u.z, v.z) };
+}
+
+inline float max(vec3f const& u)
+{
+    return max(u.x, u.y, u.z);
+}
+
+inline vec3f abs(vec3f const& u)
+{
+    return { abs(u.x), abs(u.y), abs(u.z) };
 }
 
 struct mat4f
@@ -158,6 +202,60 @@ struct mat4f
 inline mat4f eye4f() { return mat4f().load_identity(); }
 
 mat4f operator * (mat4f const& A, mat4f const& B);
+
+struct box3f
+{
+    vec3f p0, p1;
+
+    box3f& clear()
+    {
+        p0 = { INFINITY, INFINITY, INFINITY };
+        p1 = { -INFINITY, -INFINITY, -INFINITY };
+        return *this;
+    }
+
+    box3f& expand(vec3f const& p)
+    {
+        p0 = min(p0, p);
+        p1 = max(p1, p);
+        return *this;
+    }
+
+    box3f& expand(box3f const& box)
+    {
+        p0 = min(p0, box.p0);
+        p1 = max(p1, box.p1);
+        return *this;
+    }
+
+    template <typename R>
+    box3f& expand(R const& items)
+    {
+        for (auto const& item : items)
+            expand(item);
+        return *this;
+    }
+
+    static box3f empty() { return box3f().clear(); }
+};
+
+inline vec3f box_diameter(box3f const& box)
+{
+    return abs(box.p1 - box.p0);
+}
+
+inline vec3f box_center(box3f const& box)
+{
+    return 0.5f * (box.p0 + box.p1);
+}
+
+template <typename R>
+box3f get_bounds(R const& points)
+{
+    return box3f().clear().expand(points);
+}
+
+mat4f get_box_mapping_to_symunit(box3f const& box);
 
 vec3f face_normal(vec3f const& a, vec3f const& b, vec3f const& c);
 
