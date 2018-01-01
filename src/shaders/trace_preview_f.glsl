@@ -1,5 +1,7 @@
 #version 420
 
+uniform usampler2D array_ranges;
+uniform sampler2D depth_arrays;
 uniform mat4 bake_projection;
 uniform float bake_nearz;
 
@@ -21,6 +23,10 @@ void main()
         return;
     }
     perspective_transform_ray(bake_projection, ray_origin, ray_direction);
-    if (!cast_ray(ray_origin, ray_direction, color))
+    if (!cast_ray(
+            ray_origin, ray_direction,
+            array_ranges, depth_arrays,
+            60,
+            color))
         color = checker_color();
 }

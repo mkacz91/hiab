@@ -47,6 +47,8 @@ HeadsProgram::HeadsProgram()
 TracePreviewProgram::TracePreviewProgram()
     : ShaderProgram("trace_preview_v", "trace_preview_f")
 {
+    load_uniform(array_ranges);
+    load_uniform(depth_arrays);
     load_uniform(viewport_to_bake_view);
     load_uniform(bake_projection);
     load_uniform(bake_nearz);

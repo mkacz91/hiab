@@ -48,6 +48,8 @@ struct HeadsProgram : public ShaderProgram
 
 struct TracePreviewProgram : public ShaderProgram
 {
+    GLint array_ranges;
+    GLint depth_arrays;
     GLint viewport_to_bake_view;
     GLint bake_projection;
     GLint bake_nearz;

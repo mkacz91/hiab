@@ -262,6 +262,14 @@ void render_trace_preview(
     glUseProgram(r->programs.trace_preview->id);
     {
         auto program = r->programs.trace_preview;
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, r->textures.array_ranges);
+        glUniform1i(program->array_ranges, 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, r->textures.depth_arrays);
+        glUniform1i(program->depth_arrays, 1);
+
         glUniformMatrix4fv(program->viewport_to_bake_view, 1, GL_TRUE,
             viewport_to_bake_view.p());
         glUniformMatrix4fv(program->bake_projection, 1, GL_TRUE,

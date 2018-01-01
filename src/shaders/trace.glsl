@@ -2,6 +2,8 @@
 // `ray_direction`, with the scene. (TODO: describe how scene is defined)
 bool cast_ray(
     vec3 ray_origin, vec3 ray_direction,
+    usampler2D array_ranges, sampler2D depth_arrays,
+    int iterations,
     out vec4 color)
 {
     // Clamping the division to avoid infinities. This may result in
@@ -22,9 +24,29 @@ bool cast_ray(
     if (t0 >= t1)
         return false;
 
-    float t = t0 > 0.0 || ray_origin.z < -1.0 + 1e-4 ? t0 : t1;
-    color = vec4(0.5 * (1.0 + (ray_origin + t * ray_direction)), 1.0);
-    return true;
+    vec3 p = ray_origin + t0 * ray_direction;
+    vec3 dp = (t1 - t0) / float(iterations) * ray_direction;
+
+    p = 0.5 + 0.5 * p;
+    dp *= 0.5;
+
+    while (iterations --> 0)
+    {
+        p += dp;
+        uint array_range = textureLod(array_ranges, p.xy, 0.0)[0];
+        if (array_range == 0u)
+            continue;
+        ivec2 array_index = ivec2(
+            array_range & 0x3FFF, (array_range >> 14) & 0x1FFF);
+        float z = texelFetch(depth_arrays, array_index, 0)[0];
+        if (z < p.z && z > p.z - 0.01)
+        {
+            color = vec4(abs(p.z - z) * 100, 0, 0, 1);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // If `origin.z > clipz`, the origin is moved along the positive `direction`
