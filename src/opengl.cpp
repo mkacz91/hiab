@@ -1,5 +1,6 @@
 #include "opengl.h"
 #include <unordered_map>
+#include <sstream>
 #include "files.h"
 
 namespace hiab {
@@ -19,9 +20,35 @@ GLenum gl_exception::error_code() const { return m_error_code; }
 
 string gl_exception::error_string() const { return gl_enum_string(error_code()); }
 
+void gl_load_preprocessed_shader_source(
+    string const& name, std::ostringstream& ostr, string& line)
+{
+    auto fin = open_file_for_reading(name + ".glsl");
+    while (std::getline(fin, line))
+    {
+        if (string_starts_with(line, "#include "))
+        {
+            string include_name = line.substr(9);
+            gl_load_preprocessed_shader_source(include_name, ostr, line);
+        }
+        else
+        {
+            ostr << line << '\n';
+        }
+    }
+}
+
+string gl_load_preprocessed_shader_source(string const& name)
+{
+    std::ostringstream ostr;
+    string line;
+    gl_load_preprocessed_shader_source(name, ostr, line);
+    return ostr.str();
+}
+
 GLuint gl_load_shader(const string& name, GLenum shader_type)
 {
-    auto source = read_all_text_from_file(name + ".glsl");
+    auto source = gl_load_preprocessed_shader_source(name);
 
     // Create shader object
     GLuint shader = glCreateShader(shader_type);

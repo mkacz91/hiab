@@ -14,6 +14,19 @@ inline string quote(const string& s) { return "\"" + s + "\""; }
 inline string squote(const string& s) { return "'" + s + "'"; }
 inline string paren(const string& s) { return "(" + s + ")"; }
 
+inline bool string_starts_with(string const& s, string const& pattern)
+{
+    if (s.length() < pattern.length())
+        return false;
+    int length = (int)pattern.length();
+    for (int i = 0; i < length; ++i)
+    {
+        if (s[i] != pattern[i])
+            return false;
+    }
+    return true;
+}
+
 template <typename T>
 T const& view_as(void const* data)
 {
