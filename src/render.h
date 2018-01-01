@@ -2,6 +2,7 @@
 
 #include "prefix.h"
 #include "opengl.h"
+#include "math.h"
 
 namespace hiab {
 
@@ -10,6 +11,8 @@ struct Camera;
 struct ObjectProgram;
 struct Layer0Program;
 struct HeadsProgram;
+struct TracePreviewProgram;
+struct FrustumProgram;
 
 struct HeapInfo
 {
@@ -32,6 +35,8 @@ struct Renderer
         ObjectProgram* object;
         Layer0Program* layer0;
         HeadsProgram* heads;
+        TracePreviewProgram* trace_preview;
+        FrustumProgram* frustum;
     } programs;
     static constexpr int PROGRAM_COUNT =
         sizeof(Renderer::programs) / sizeof(void*);
@@ -40,6 +45,7 @@ struct Renderer
     {
         GLuint viewport_vertices;
         GLuint node_alloc_pointer;
+        GLuint frustum_vertices;
     } buffers;
     static constexpr int BUFFER_COUNT =
         sizeof(Renderer::buffers) / sizeof(GLuint);
@@ -63,12 +69,28 @@ struct Renderer
         sizeof(Renderer::framebuffers) / sizeof(GLuint);
 };
 
+struct TracePreview
+{
+    mat4f bake_view;
+    mat4f bake_projection;
+    float bake_nearz;
+};
+
 void init_renderer(Renderer* renderer);
 
 void close_renderer(Renderer* renderer);
 
 void set_renderer_viewport(Renderer* renderer, int width, int height);
 
-void render(Renderer* renderer, Scene const* scene, Camera const* camera);
+void render_scene(Renderer* renderer, Scene const* scene, Camera const* camera);
+
+TracePreview* init_trace_preview(
+    Renderer const* renderer, Camera const* camera);
+
+void render_trace_preview(
+    Renderer* renderer, TracePreview const* preview, Camera const* camera);
+
+void render_frustum(
+    Renderer* renderer, mat4f const& in_camera, Camera const* camera);
 
 } // namespace hiab

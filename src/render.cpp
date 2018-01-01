@@ -17,6 +17,8 @@ void init_renderer(Renderer* r)
     r->programs.object = new ObjectProgram;
     r->programs.layer0 = new Layer0Program;
     r->programs.heads = new HeadsProgram;
+    r->programs.trace_preview = new TracePreviewProgram;
+    r->programs.frustum = new FrustumProgram;
 
     glGenBuffers(
         Renderer::BUFFER_COUNT, reinterpret_cast<GLuint*>(&r->buffers));
@@ -30,6 +32,27 @@ void init_renderer(Renderer* r)
     glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
     glBufferData(GL_ARRAY_BUFFER,
         sizeof(viewport_vertices), &viewport_vertices, GL_STATIC_DRAW);
+
+    GLfloat frustum_vertices[] =
+    {
+        -1, -1, -1, +1, -1, -1,
+        -1, -1, +1, +1, -1, +1,
+        -1, +1, -1, +1, +1, -1,
+        -1, +1, +1, +1, +1, +1,
+
+        -1, -1, -1, -1, +1, -1,
+        -1, -1, +1, -1, +1, +1,
+        +1, -1, -1, +1, +1, -1,
+        +1, -1, +1, +1, +1, +1,
+
+        -1, -1, -1, -1, -1, +1,
+        -1, +1, -1, -1, +1, +1,
+        +1, -1, -1, +1, -1, +1,
+        +1, +1, -1, +1, +1, +1
+    };
+    glBindBuffer(GL_ARRAY_BUFFER, r->buffers.frustum_vertices);
+    glBufferData(GL_ARRAY_BUFFER,
+        sizeof(frustum_vertices), &frustum_vertices, GL_STATIC_DRAW);
 
     auto textures = reinterpret_cast<GLuint*>(&r->textures);
     glGenTextures(Renderer::TEXTURE_COUNT, textures);
@@ -112,7 +135,7 @@ void apply_viewport_changes(Renderer* r)
         GL_R32UI, width, height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 }
 
-void render(Renderer* r, Scene const* scene, Camera const* camera)
+void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
 {
     float t = (float)glfwGetTime();
 
@@ -124,7 +147,7 @@ void render(Renderer* r, Scene const* scene, Camera const* camera)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(0.05f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     mat4f camera_matrix = get_camera_matrix(camera);
 
@@ -208,6 +231,74 @@ void render(Renderer* r, Scene const* scene, Camera const* camera)
     std::cout << "Average nodes: " <<
         node_alloc_pointer / float(r->viewport_width * r->viewport_height) << std::endl;
     std::cout << "Dt: " << scene->dt * 1000 << std::endl;
+}
+
+TracePreview* init_trace_preview(Renderer const* r, Camera const* camera)
+{
+    auto preview = new TracePreview;
+    apply_camera_view_matrix(
+        preview->bake_view.load_identity(), camera);
+    apply_camera_projection_matrix(
+        preview->bake_projection.load_identity(), camera);
+    preview->bake_nearz = -camera->near;
+    return preview;
+}
+
+void render_trace_preview(
+    Renderer* r, TracePreview const* preview, Camera const* camera)
+{
+    mat4f viewport_to_bake_view;
+    {
+        viewport_to_bake_view.load_identity();
+        float scalex, scaley;
+        mat4f::get_perspective_aov_bounds(
+            camera->aspect, camera->near, camera->aov, &scalex, &scaley);
+        viewport_to_bake_view.scale(scalex, scaley, camera->near);
+
+        apply_inverse_camera_view_matrix(viewport_to_bake_view, camera);
+        viewport_to_bake_view.apply(preview->bake_view);
+    }
+
+    glUseProgram(r->programs.trace_preview->id);
+    {
+        auto program = r->programs.trace_preview;
+        glUniformMatrix4fv(program->viewport_to_bake_view, 1, GL_TRUE,
+            viewport_to_bake_view.p());
+        glUniformMatrix4fv(program->bake_projection, 1, GL_TRUE,
+            preview->bake_projection.p());
+        glUniform1f(program->bake_nearz, preview->bake_nearz);
+
+        glEnableVertexAttribArray(program->viewport_position);
+        glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
+        glVertexAttribPointer(
+            program->viewport_position, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glDisableVertexAttribArray(program->viewport_position);
+    }
+}
+
+void render_frustum(Renderer* r, mat4f const& in_camera, Camera const* camera)
+{
+    glUseProgram(r->programs.frustum->id);
+    {
+        auto program = r->programs.frustum;
+
+        glUniformMatrix4fv(program->in_camera, 1, GL_TRUE,
+            in_camera.p());
+        glUniformMatrix4fv(program->out_camera, 1, GL_TRUE,
+            get_camera_matrix(camera).p());
+
+        glEnableVertexAttribArray(program->position);
+        glBindBuffer(GL_ARRAY_BUFFER, r->buffers.frustum_vertices);
+        glVertexAttribPointer(
+            program->position, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glDrawArrays(GL_LINES, 0, 24);
+
+        glDisableVertexAttribArray(program->position);
+    }
 }
 
 } // namespace hiab;

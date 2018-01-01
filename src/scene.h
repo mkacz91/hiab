@@ -65,6 +65,8 @@ void set_camera_clip_planes(Camera* camera, float near, float far);
 
 void apply_camera_view_matrix(mat4f& matrix, Camera const* camera);
 
+void apply_inverse_camera_view_matrix(mat4f& matrix, Camera const* camera);
+
 void apply_camera_projection_matrix(mat4f& matrix, Camera const* camera);
 
 mat4f get_camera_matrix(Camera const* camera);

@@ -18,9 +18,13 @@ int framebuffer_width, framebuffer_height;
 double mouse_x, mouse_y;
 bool flying_around = false;
 bool camera_panning = false;
+TracePreview* trace_preview = nullptr;
+mat4f captured_camera = eye4f();
 
 void set_flying_around(bool value);
 void apply_camera_movement();
+bool trace_preview_enabled();
+void set_trace_preview(bool enabled);
 
 void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
 void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
@@ -69,7 +73,7 @@ int main(int argc, char** argv)
         glfwSetMouseButtonCallback(window, on_mouse_button);
         glfwSetCursorPosCallback(window, on_mouse_move);
 
-        set_camera_clip_planes(&camera, 0.5f, 50.0f);
+        set_camera_clip_planes(&camera, 0.5f, 5.0f);
         move_camera(&camera, { 0, 0, 3 });
 
         init_scene_time(&scene, glfwGetTime());
@@ -77,7 +81,15 @@ int main(int argc, char** argv)
         while (!glfwWindowShouldClose(window))
         {
             glViewport(0, 0, framebuffer_width, framebuffer_height);
-            render(&renderer, &scene, &camera);
+            if (trace_preview_enabled())
+            {
+                render_trace_preview(&renderer, trace_preview, &camera);
+            }
+            else
+            {
+                render_scene(&renderer, &scene, &camera);
+                render_frustum(&renderer, captured_camera, &camera);
+            }
             glfwSwapBuffers(window);
 
             glfwPollEvents();
@@ -144,6 +156,28 @@ void apply_camera_movement()
     move_camera(&camera, translation);
 }
 
+bool trace_preview_enabled()
+{
+    return trace_preview != nullptr;
+}
+
+void set_trace_preview(bool enabled)
+{
+    if (trace_preview_enabled() == enabled)
+        return;
+
+    if (enabled)
+    {
+        trace_preview = init_trace_preview(&renderer, &camera);
+        captured_camera = get_camera_matrix(&camera);
+    }
+    else
+    {
+        delete trace_preview;
+        trace_preview = nullptr;
+    }
+}
+
 void on_key(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     switch (key)
@@ -151,6 +185,10 @@ void on_key(GLFWwindow* window, int key, int scancode, int action, int mods)
         case GLFW_KEY_SPACE:
             if (action == GLFW_PRESS)
                 camera_panning = !camera_panning;
+        break;
+        case GLFW_KEY_R:
+            if (action == GLFW_PRESS)
+                set_trace_preview(!trace_preview_enabled());
         break;
         case GLFW_KEY_ESCAPE:
             if (action == GLFW_PRESS)

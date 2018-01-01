@@ -193,6 +193,9 @@ struct mat4f
     static mat4f perspective_aov(
         float aspect, float near, float far, float aov);
 
+    static void get_perspective_aov_bounds(
+        float aspect, float near, float aov, float* right, float* top);
+
     static mat4f perspective_bounds(
         float left, float right, float bottom, float top, float near, float far);
 

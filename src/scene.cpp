@@ -185,6 +185,15 @@ void apply_camera_view_matrix(mat4f& matrix, Camera const* camera)
         .scale(camera->scale);
 }
 
+void apply_inverse_camera_view_matrix(mat4f& matrix, Camera const* camera)
+{
+    matrix
+        .scale(1.0f / camera->scale)
+        .rotate_x(camera->angle.x)
+        .rotate_y(camera->angle.y)
+        .translate(camera->position);
+}
+
 void apply_camera_projection_matrix(mat4f& matrix, Camera const* camera)
 {
     matrix.apply(mat4f::perspective_aov(

@@ -46,4 +46,23 @@ struct HeadsProgram : public ShaderProgram
     HeadsProgram();
 };
 
+struct TracePreviewProgram : public ShaderProgram
+{
+    GLint viewport_to_bake_view;
+    GLint bake_projection;
+    GLint bake_nearz;
+    GLint viewport_position;
+
+    TracePreviewProgram();
+};
+
+struct FrustumProgram : public ShaderProgram
+{
+    GLint in_camera;
+    GLint out_camera;
+    GLint position;
+
+    FrustumProgram();
+};
+
 } // namespace hiab

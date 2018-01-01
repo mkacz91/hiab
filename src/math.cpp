@@ -100,9 +100,16 @@ mat4f& mat4f::scale(float x, float y, float z)
 mat4f mat4f::perspective_aov(
     float aspect, float near, float far, float aov)
 {
-    float y_max = near * tan(0.5f * aov);
-    float x_max = aspect * y_max;
-    return perspective_bounds(-x_max, x_max, -y_max, y_max, near, far);
+    float right, top;
+    get_perspective_aov_bounds(aspect, near, aov, &right, &top);
+    return perspective_bounds(-right, right, -top, top, near, far);
+}
+
+void mat4f::get_perspective_aov_bounds(
+    float aspect, float near, float aov, float* right, float* top)
+{
+    *top = near * tan(0.5f * aov);
+    *right = aspect * (*top);
 }
 
 mat4f mat4f::perspective_bounds(

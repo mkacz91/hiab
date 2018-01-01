@@ -44,4 +44,21 @@ HeadsProgram::HeadsProgram()
     load_attrib(position);
 }
 
+TracePreviewProgram::TracePreviewProgram()
+    : ShaderProgram("trace_preview_v", "trace_preview_f")
+{
+    load_uniform(viewport_to_bake_view);
+    load_uniform(bake_projection);
+    load_uniform(bake_nearz);
+    load_attrib(viewport_position);
+}
+
+FrustumProgram::FrustumProgram()
+    : ShaderProgram("frustum_v", "varying4_f")
+{
+    load_uniform(in_camera);
+    load_uniform(out_camera);
+    load_attrib(position);
+}
+
 } // namespace hiab
