@@ -193,10 +193,14 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
         GL_R32UI, 1, 1, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &array_alloc_pointer);
 
     glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, r->framebuffers.write_array_ranges);
 
     glUseProgram(r->programs.layer0->id);
     {
         auto program = r->programs.layer0;
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+            r->textures.array_ranges, 0);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, r->textures.nodes);
@@ -207,9 +211,7 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
 
         glBindImageTexture(0, r->textures.array_alloc_pointer,
             0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-        glBindImageTexture(1, r->textures.array_ranges,
-            0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-        glBindImageTexture(2, r->textures.depth_arrays,
+        glBindImageTexture(1, r->textures.depth_arrays,
             0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
         glUniform4uiv(program->heap_info, 1, (GLuint*)&r->heap_info);

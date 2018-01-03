@@ -64,6 +64,7 @@ struct Renderer
     struct
     {
         GLuint clear_heads;
+        GLuint write_array_ranges;
     } framebuffers;
     static constexpr int FRAMEBUFFER_COUNT =
         sizeof(Renderer::framebuffers) / sizeof(GLuint);

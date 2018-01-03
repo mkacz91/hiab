@@ -9,20 +9,19 @@ uniform usampler2D nodes;
 uniform usampler2D heads;
 
 layout(binding = 0, r32ui) uniform restrict uimage2D array_alloc_pointer;
-layout(binding = 1, r32ui) uniform restrict uimage2D array_ranges;
-layout(binding = 2, r32f) uniform restrict writeonly image2D depth_arrays;
+layout(binding = 1, r32f) uniform restrict writeonly image2D depth_arrays;
 uniform uvec4 heap_info;
 
-out vec4 color;
+out uint array_range;
 
 void main()
 {
     uint pnode = texelFetch(heads, ivec2(gl_FragCoord), 0).r;
     if (pnode == 0u)
     {
-        // TODO: Benchmark against framebuffer clear
-        imageStore(array_ranges, ivec2(gl_FragCoord), uvec4(0));
-        discard;
+        // TODO: Benchmark against framebuffer clear and discard
+        array_range = 0;
+        return;
     }
 
     int layer_count = 0;
@@ -67,13 +66,9 @@ void main()
     }
     uint array_endx = array_startx + layer_count;
     uint array_starty = array_start >> heap_info[3];
-    uint array_range = array_startx | (array_starty << 14) | (layer_count << 27);
-
-    imageStore(array_ranges, ivec2(gl_FragCoord), uvec4(array_range, 0, 0, 0));
+    array_range = array_startx | (array_starty << 14) | (layer_count << 27);
 
     for (uint i = 0; i < layer_count; ++i)
         imageStore(depth_arrays, ivec2(array_startx + i, array_starty),
             vec4(depths[i], 0, 0, 0));
-
-    color = unpackUnorm4x8(array_range);
 }
