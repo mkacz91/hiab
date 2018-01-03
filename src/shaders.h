@@ -41,6 +41,7 @@ struct Layer0Program : public ShaderProgram
 struct HeadsProgram : public ShaderProgram
 {
     GLint heads;
+    GLint viewport_size;
     GLint position;
 
     HeadsProgram();
@@ -65,6 +66,15 @@ struct FrustumProgram : public ShaderProgram
     GLint position;
 
     FrustumProgram();
+};
+
+struct DownsampleProgram : public ShaderProgram
+{
+    GLint array_ranges;
+    GLint base_level;
+    GLint viewport_position;
+
+    DownsampleProgram();
 };
 
 } // namespace hiab

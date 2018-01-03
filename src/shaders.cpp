@@ -41,6 +41,7 @@ HeadsProgram::HeadsProgram()
     : ShaderProgram("position4_v", "heads_f")
 {
     load_uniform(heads);
+    load_uniform(viewport_size);
     load_attrib(position);
 }
 
@@ -61,6 +62,14 @@ FrustumProgram::FrustumProgram()
     load_uniform(in_camera);
     load_uniform(out_camera);
     load_attrib(position);
+}
+
+DownsampleProgram::DownsampleProgram()
+    : ShaderProgram("downsample_v", "downsample_f")
+{
+    load_uniform(array_ranges);
+    load_uniform(base_level);
+    load_attrib(viewport_position);
 }
 
 } // namespace hiab

@@ -9,7 +9,7 @@ namespace hiab {
 
 void init_renderer(Renderer* r)
 {
-    r->viewport_width = r->viewport_height = 0;
+    r->viewport = { 0, 0, 0, 0 };
     r->viewport_changed = true;
 
     r->avg_layers_per_pixel = 2;
@@ -19,6 +19,7 @@ void init_renderer(Renderer* r)
     r->programs.heads = new HeadsProgram;
     r->programs.trace_preview = new TracePreviewProgram;
     r->programs.frustum = new FrustumProgram;
+    r->programs.downsample = new DownsampleProgram;
 
     glGenBuffers(
         Renderer::BUFFER_COUNT, reinterpret_cast<GLuint*>(&r->buffers));
@@ -84,13 +85,12 @@ void close_renderer(Renderer* r)
         Renderer::FRAMEBUFFER_COUNT, reinterpret_cast<GLuint*>(&r->framebuffers));
 }
 
-void set_renderer_viewport(Renderer* r, int width, int height)
+void set_renderer_viewport(Renderer* r, Viewport viewport)
 {
     r->viewport_changed =
-        r->viewport_changed ||
-        r->viewport_width != width || r->viewport_height != height;
-    r->viewport_width = width;
-    r->viewport_height = height;
+        r->viewport.width != viewport.width ||
+        r->viewport.height != viewport.height;
+    r->viewport = viewport;
 }
 
 void apply_viewport_changes(Renderer* r)
@@ -98,7 +98,7 @@ void apply_viewport_changes(Renderer* r)
     if (!r->viewport_changed)
         return;
     r->viewport_changed = false;
-    int width = r->viewport_width, height = r->viewport_height;
+    int width = r->viewport.width, height = r->viewport.height;
 
     glBindTexture(GL_TEXTURE_2D, r->textures.heads);
     glTexImage2D(GL_TEXTURE_2D, 0,
@@ -131,8 +131,23 @@ void apply_viewport_changes(Renderer* r)
         GL_RED, GL_FLOAT, nullptr));
 
     glBindTexture(GL_TEXTURE_2D, r->textures.array_ranges);
-    glTexImage2D(GL_TEXTURE_2D, 0,
-        GL_R32UI, width, height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    {
+        int level = 0;
+        while (level < Renderer::REFERENCE_ABUFFER_HIERARCHY_LEVEL_COUNT)
+        {
+            int level_width = width >> level, level_height = height >> level;
+            if (level_width == 0 || level_height == 0)
+                break;
+            glTexImage2D(
+                GL_TEXTURE_2D, level, GL_R32UI, level_width, level_height,
+                0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+            ++level;
+        }
+        r->abuffer_hierarchy_level_count = level;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+            GL_NEAREST_MIPMAP_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
+    }
 }
 
 void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
@@ -140,6 +155,8 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
     float t = (float)glfwGetTime();
 
     apply_viewport_changes(r);
+    glViewport(
+        r->viewport.x, r->viewport.y, r->viewport.width, r->viewport.height);
 
     glBindFramebuffer(GL_FRAMEBUFFER, r->framebuffers.clear_heads);
     glClearColor(0, 0, 0, 0);
@@ -225,6 +242,45 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
 
         glDisableVertexAttribArray(program->position);
     }
+
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+
+    glUseProgram(r->programs.downsample->id);
+    {
+        auto program = r->programs.downsample;
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, r->textures.array_ranges);
+        glUniform1i(program->array_ranges, 0);
+
+        glBindImageTexture(0, r->textures.array_alloc_pointer,
+            0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+        glBindImageTexture(1, r->textures.depth_arrays,
+            0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
+
+        glEnableVertexAttribArray(program->viewport_position);
+        glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
+        glVertexAttribPointer(
+            program->viewport_position, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        for (int level = 1; level < r->abuffer_hierarchy_level_count; ++level)
+        {
+            glFramebufferTexture2D(
+                GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                r->textures.array_ranges, level);
+            int level_width = r->viewport.width >> level;
+            int level_height = r->viewport.height >> level;
+            glViewport(0, 0, level_width, level_height);
+            glUniform1f(program->base_level, float(level - 1));
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+        }
+
+        glDisableVertexAttribArray(program->viewport_position);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(
+        r->viewport.x, r->viewport.y, r->viewport.width, r->viewport.height);
 
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.node_alloc_pointer);
     glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER,

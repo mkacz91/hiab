@@ -80,7 +80,6 @@ int main(int argc, char** argv)
 
         while (!glfwWindowShouldClose(window))
         {
-            glViewport(0, 0, framebuffer_width, framebuffer_height);
             if (trace_preview_enabled())
             {
                 render_trace_preview(&renderer, trace_preview, &camera);
@@ -223,6 +222,6 @@ void on_resize(GLFWwindow* window, int width, int height)
     std::cout << "Framebuffer size: " << width << " " << height << std::endl;
     framebuffer_width = width;
     framebuffer_height = height;
-    set_renderer_viewport(&renderer, width, height);
+    set_renderer_viewport(&renderer, { 0, 0, width, height });
     set_camera_viewport(&camera, width, height);
 }

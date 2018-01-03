@@ -13,6 +13,7 @@ struct Layer0Program;
 struct HeadsProgram;
 struct TracePreviewProgram;
 struct FrustumProgram;
+struct DownsampleProgram;
 
 struct HeapInfo
 {
@@ -22,11 +23,19 @@ struct HeapInfo
     GLuint yshift;
 };
 
+struct Viewport
+{
+    int x, y, width, height;
+};
+
 struct Renderer
 {
-    int viewport_width, viewport_height;
+    static constexpr int REFERENCE_ABUFFER_HIERARCHY_LEVEL_COUNT = 4;
+
+    Viewport viewport;
     bool viewport_changed;
     int avg_layers_per_pixel;
+    int abuffer_hierarchy_level_count;
 
     HeapInfo heap_info;
 
@@ -37,6 +46,7 @@ struct Renderer
         HeadsProgram* heads;
         TracePreviewProgram* trace_preview;
         FrustumProgram* frustum;
+        DownsampleProgram* downsample;
     } programs;
     static constexpr int PROGRAM_COUNT =
         sizeof(Renderer::programs) / sizeof(void*);
@@ -81,7 +91,7 @@ void init_renderer(Renderer* renderer);
 
 void close_renderer(Renderer* renderer);
 
-void set_renderer_viewport(Renderer* renderer, int width, int height);
+void set_renderer_viewport(Renderer* renderer, Viewport viewport);
 
 void render_scene(Renderer* renderer, Scene const* scene, Camera const* camera);
 
