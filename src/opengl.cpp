@@ -182,6 +182,15 @@ string gl_enum_string(GLenum value)
         gl_enum_string_case(GL_INVALID_VALUE);
         gl_enum_string_case(GL_INVALID_OPERATION);
         gl_enum_string_case(GL_OUT_OF_MEMORY);
+        gl_enum_string_case(GL_FRAMEBUFFER_COMPLETE);
+        gl_enum_string_case(GL_FRAMEBUFFER_UNDEFINED);
+        gl_enum_string_case(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+        gl_enum_string_case(GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
+        gl_enum_string_case(GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER);
+        gl_enum_string_case(GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER);
+        gl_enum_string_case(GL_FRAMEBUFFER_UNSUPPORTED);
+        gl_enum_string_case(GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE);
+        gl_enum_string_case(GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS); 
 
         default: return "Unknown GL constant " + to_string(value);
     }
