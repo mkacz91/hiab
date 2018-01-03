@@ -12,7 +12,9 @@ layout(binding = 0, r32ui) uniform restrict uimage2D array_alloc_pointer;
 layout(binding = 1, r32f) uniform restrict writeonly image2D depth_arrays;
 uniform uvec4 heap_info;
 
-out uint array_range;
+out uint packed_array_range;
+
+#include utils_f
 
 void main()
 {
@@ -20,7 +22,7 @@ void main()
     if (pnode == 0u)
     {
         // TODO: Benchmark against framebuffer clear and discard
-        array_range = 0;
+        packed_array_range = 0;
         return;
     }
 
@@ -56,19 +58,13 @@ void main()
         colors[i] = tmp_color;
     }
 
-    const uint max_array_startx = heap_info[1] - layer_count;
-    uint array_start;
-    uint array_startx = max_array_startx;
-    while (array_startx >= max_array_startx)
+    uvec3 array_range = alloc_range(
+        array_alloc_pointer, heap_info, layer_count);
+    for (int i = 0; i < layer_count; ++i)
     {
-        array_start = imageAtomicAdd(array_alloc_pointer, ivec2(0), layer_count);
-        array_startx = array_start & heap_info[2];
+        ivec2 coords = ivec2(array_range[0] + i, array_range[1]);
+        imageStore(depth_arrays, coords, vec4(depths[i], 0, 0, 0));
     }
-    uint array_endx = array_startx + layer_count;
-    uint array_starty = array_start >> heap_info[3];
-    array_range = array_startx | (array_starty << 14) | (layer_count << 27);
 
-    for (uint i = 0; i < layer_count; ++i)
-        imageStore(depth_arrays, ivec2(array_startx + i, array_starty),
-            vec4(depths[i], 0, 0, 0));
+    packed_array_range = pack_range(array_range);
 }
