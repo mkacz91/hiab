@@ -87,8 +87,8 @@ int main(int argc, char** argv)
             }
             else
             {
-                render_scene(&renderer, &scene, &camera);
                 render_frustum(&renderer, captured_camera, &camera);
+                render_scene(&renderer, &scene, &camera);
             }
             glfwSwapBuffers(window);
 
