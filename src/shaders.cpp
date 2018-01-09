@@ -50,6 +50,7 @@ TracePreviewProgram::TracePreviewProgram()
 {
     load_uniform(array_ranges);
     load_uniform(depth_arrays);
+    load_uniform(color_arrays);
     load_uniform(viewport_to_bake_view);
     load_uniform(bake_projection);
     load_uniform(bake_nearz);

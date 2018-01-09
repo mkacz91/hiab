@@ -10,6 +10,7 @@ uniform usampler2D heads;
 
 layout(binding = 0, r32ui) uniform restrict uimage2D array_alloc_pointer;
 layout(binding = 1, r32f) uniform restrict writeonly image2D depth_arrays;
+layout(binding = 2, rgba8) uniform restrict writeonly image2D color_arrays;
 uniform uvec4 heap_info;
 
 out uint packed_array_range;
@@ -64,6 +65,7 @@ void main()
     {
         ivec2 coords = ivec2(array_range[0] + i, array_range[1]);
         imageStore(depth_arrays, coords, vec4(depths[i], 0, 0, 0));
+        imageStore(color_arrays, coords, unpackUnorm4x8(colors[i]));
     }
 
     packed_array_range = pack_range(array_range);

@@ -82,10 +82,11 @@ bool cast_ray_hierarchical(
         uint packed_range = textureLod(array_ranges, coord, float(level))[0];
         bool hit = false;
         float z;
+        uvec3 range;
         // TODO: try using special value at 0 to avoid branching
         if (packed_range != 0u)
         {
-            uvec3 range = unpack_range(packed_range);
+            range = unpack_range(packed_range);
             z = texelFetch(depth_arrays, ivec2(range), 0)[0];
             hit = p1.z >= z || p1.z >= z;
         }
@@ -93,7 +94,7 @@ bool cast_ray_hierarchical(
         {
             if (level == 0)
             {
-                color = vec4(z, 0.0, 0.0, 1.0);
+                color = texelFetch(color_arrays, ivec2(range), 0);
                 return true;
             }
             --level;

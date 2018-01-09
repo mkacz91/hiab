@@ -6,6 +6,7 @@ const int MAX_ABUFFER_LEVELS = 8;
 
 uniform usampler2D array_ranges;
 uniform sampler2D depth_arrays;
+uniform sampler2D color_arrays;
 uniform mat4 bake_projection;
 uniform float bake_nearz;
 uniform int iterations; // TODO: check if uniform vs constant makes difference

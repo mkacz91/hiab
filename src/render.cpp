@@ -129,6 +129,10 @@ void apply_viewport_changes(Renderer* r)
     gl_error_guard(glTexImage2D(GL_TEXTURE_2D, 0,
         GL_R32F, heap_width, heap_height, 0,
         GL_RED, GL_FLOAT, nullptr));
+    glBindTexture(GL_TEXTURE_2D, r->textures.color_arrays);
+    glTexImage2D(GL_TEXTURE_2D, 0,
+        GL_RGBA, heap_width, heap_height, 0,
+        GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
     glBindTexture(GL_TEXTURE_2D, r->textures.array_ranges);
     {
@@ -239,6 +243,8 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
             0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
         glBindImageTexture(1, r->textures.depth_arrays,
             0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+        glBindImageTexture(2, r->textures.color_arrays,
+            0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
         glUniform4uiv(program->heap_info, 1, (GLuint const*)&r->heap_info);
 
@@ -337,6 +343,9 @@ void render_trace_preview(
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, r->textures.depth_arrays);
         glUniform1i(program->depth_arrays, 1);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, r->textures.color_arrays);
+        glUniform1i(program->color_arrays, 2);
 
         glUniformMatrix4fv(program->viewport_to_bake_view, 1, GL_TRUE,
             viewport_to_bake_view.p());

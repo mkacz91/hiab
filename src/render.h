@@ -73,6 +73,7 @@ struct Renderer
         GLuint array_alloc_pointer;
         GLuint array_ranges;
         GLuint depth_arrays;
+        GLuint color_arrays;
     } textures;
     static constexpr int TEXTURE_COUNT =
         sizeof(Renderer::textures) / sizeof(GLuint);
