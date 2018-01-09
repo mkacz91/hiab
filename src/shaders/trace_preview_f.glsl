@@ -8,6 +8,7 @@ uniform usampler2D array_ranges;
 uniform sampler2D depth_arrays;
 uniform mat4 bake_projection;
 uniform float bake_nearz;
+uniform int iterations; // TODO: check if uniform vs constant makes difference
 
 uniform vec4 level_infos[MAX_ABUFFER_LEVELS];
 uniform int max_level;
@@ -35,12 +36,12 @@ void main()
     if (!cast_ray(
             ray_origin, ray_direction,
             array_ranges, depth_arrays,
-            150,
+            iterations,
             color))
 #else
     if (!cast_ray_hierarchical(
             ray_origin, ray_direction,
-            6, 100,
+            6, iterations,
             color))
 #endif
         color = checker_color();

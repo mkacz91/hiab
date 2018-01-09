@@ -91,6 +91,7 @@ struct TracePreview
     mat4f bake_view;
     mat4f bake_projection;
     float bake_nearz;
+    int iterations;
 };
 
 void init_renderer(Renderer* renderer);

@@ -20,6 +20,7 @@ bool flying_around = false;
 bool camera_panning = false;
 TracePreview* trace_preview = nullptr;
 mat4f captured_camera = eye4f();
+int trace_iterations = 100;
 
 void set_flying_around(bool value);
 void apply_camera_movement();
@@ -151,7 +152,7 @@ void apply_camera_movement()
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         translation.x += 1;
 
-    translation *= 6.0f * scene.dt;
+    translation *= 3.0f * scene.dt;
     move_camera(&camera, translation);
 }
 
@@ -177,6 +178,19 @@ void set_trace_preview(bool enabled)
     }
 }
 
+void set_trace_iterations(int value)
+{
+    value = clamp(value, 0, 200);
+    if (trace_iterations == value)
+        return;
+
+    trace_iterations = value;
+    if (trace_preview_enabled())
+        trace_preview->iterations = trace_iterations;
+
+    std::cout << "Trace iterations: " << trace_iterations << std::endl;
+}
+
 void on_key(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     switch (key)
@@ -184,11 +198,22 @@ void on_key(GLFWwindow* window, int key, int scancode, int action, int mods)
         case GLFW_KEY_SPACE:
             if (action == GLFW_PRESS)
                 camera_panning = !camera_panning;
-        break;
+            break;
+
         case GLFW_KEY_R:
             if (action == GLFW_PRESS)
                 set_trace_preview(!trace_preview_enabled());
-        break;
+            break;
+
+        case GLFW_KEY_I:
+        case GLFW_KEY_O:
+            if (action == GLFW_PRESS)
+            {
+                int delta = key == GLFW_KEY_I ? 1 : -1;
+                set_trace_iterations(trace_iterations + delta);
+            }
+            break;
+
         case GLFW_KEY_ESCAPE:
             if (action == GLFW_PRESS)
             {
@@ -197,7 +222,7 @@ void on_key(GLFWwindow* window, int key, int scancode, int action, int mods)
                 else
                     glfwSetWindowShouldClose(window, true);
             }
-        break;
+            break;
     }
 }
 

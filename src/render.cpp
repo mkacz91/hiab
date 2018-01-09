@@ -298,10 +298,6 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.node_alloc_pointer);
     glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER,
         0, sizeof(node_alloc_pointer), (void*)&node_alloc_pointer);
-    std::cout << "Rendered fragments: " << node_alloc_pointer << std::endl;
-    std::cout << "Average nodes: " <<
-        node_alloc_pointer / float(r->viewport_width * r->viewport_height) << std::endl;
-    std::cout << "Dt: " << scene->dt * 1000 << std::endl;
 }
 
 TracePreview* init_trace_preview(Renderer const* r, Camera const* camera)
@@ -312,6 +308,7 @@ TracePreview* init_trace_preview(Renderer const* r, Camera const* camera)
     apply_camera_projection_matrix(
         preview->bake_projection.load_identity(), camera);
     preview->bake_nearz = -camera->near;
+    preview->iterations = 100;
     return preview;
 }
 
@@ -346,6 +343,7 @@ void render_trace_preview(
         glUniformMatrix4fv(program->bake_projection, 1, GL_TRUE,
             preview->bake_projection.p());
         glUniform1f(program->bake_nearz, preview->bake_nearz);
+        glUniform1i(program->iterations, preview->iterations);
         glUniform4fv(program->level_infos, Renderer::MAX_ABUFFER_LEVELS,
             (GLfloat const*)r->abuffer_level_infos);
         glUniform1i(program->max_level, r->abuffer_levels - 1);
