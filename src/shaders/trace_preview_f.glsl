@@ -1,9 +1,16 @@
 #version 420
 
+#define HIERARCHICAL
+
+const int MAX_ABUFFER_LEVELS = 8;
+
 uniform usampler2D array_ranges;
 uniform sampler2D depth_arrays;
 uniform mat4 bake_projection;
 uniform float bake_nearz;
+
+uniform vec4 level_infos[MAX_ABUFFER_LEVELS];
+uniform int max_level;
 
 in vec3 eye_ray_origin;
 in vec3 eye_ray_direction;
@@ -23,10 +30,18 @@ void main()
         return;
     }
     perspective_transform_ray(bake_projection, ray_origin, ray_direction);
+
+#ifndef HIERARCHICAL
     if (!cast_ray(
             ray_origin, ray_direction,
             array_ranges, depth_arrays,
-            60,
+            150,
             color))
+#else
+    if (!cast_ray_hierarchical(
+            ray_origin, ray_direction,
+            6, 100,
+            color))
+#endif
         color = checker_color();
 }

@@ -7,6 +7,7 @@ vec4 checker_color()
         : vec4(0.5, 0.5, 0.5, 1.0);
 }
 
+// TODO: lol. just try shader storage buffer objects or texture buffer objects
 uvec3 alloc_range(layout(r32ui) uimage2D alloc_pointer, uvec4 heap_info, uint size)
 {
     const uint max_startx = heap_info[1] - size;
@@ -36,4 +37,9 @@ uint pack_range(uvec3 range)
 uvec3 unpack_range(uint range)
 {
     return uvec3(range & 0x3FFF, (range >> 14) & 0x1FFF, range >> 27);
+}
+
+float min_component(vec3 u)
+{
+    return min(u.x, min(u.y, u.z));
 }

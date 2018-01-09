@@ -54,6 +54,8 @@ struct TracePreviewProgram : public ShaderProgram
     GLint viewport_to_bake_view;
     GLint bake_projection;
     GLint bake_nearz;
+    GLint level_infos;
+    GLint max_level;
     GLint viewport_position;
 
     TracePreviewProgram();

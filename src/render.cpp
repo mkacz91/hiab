@@ -346,6 +346,9 @@ void render_trace_preview(
         glUniformMatrix4fv(program->bake_projection, 1, GL_TRUE,
             preview->bake_projection.p());
         glUniform1f(program->bake_nearz, preview->bake_nearz);
+        glUniform4fv(program->level_infos, Renderer::MAX_ABUFFER_LEVELS,
+            (GLfloat const*)r->abuffer_level_infos);
+        glUniform1i(program->max_level, r->abuffer_levels - 1);
 
         glEnableVertexAttribArray(program->viewport_position);
         glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);

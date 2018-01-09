@@ -53,6 +53,8 @@ TracePreviewProgram::TracePreviewProgram()
     load_uniform(viewport_to_bake_view);
     load_uniform(bake_projection);
     load_uniform(bake_nearz);
+    load_uniform(level_infos);
+    load_uniform(max_level);
     load_attrib(viewport_position);
 }
 

@@ -36,14 +36,75 @@ bool cast_ray(
         uint array_range = textureLod(array_ranges, p.xy, 0.0)[0];
         if (array_range == 0u)
             continue;
-        ivec2 array_index = ivec2(
-            array_range & 0x3FFF, (array_range >> 14) & 0x1FFF);
+        ivec2 array_index = ivec2(unpack_range(array_range));
         float z = texelFetch(depth_arrays, array_index, 0)[0];
         if (z < p.z && z > p.z - 0.01)
         {
             color = vec4(abs(p.z - z) * 100, 0, 0, 1);
             return true;
         }
+    }
+
+    return false;
+}
+
+bool cast_ray_hierarchical(
+    vec3 ray_origin, vec3 ray_direction,
+    int level, int iterations,
+    out vec4 color)
+{
+    // TODO: get rid of this
+    ray_origin = 0.5 * ray_origin + 0.5;
+    ray_direction *= 0.5;
+
+    // Clamping the division to avoid infinities. This may result in
+    // underestimation of the checked range, but it's ok. Otherwise may yield
+    // NaN when multiplied by 0.
+    vec3 inv_direction = clamp(1.0 / ray_direction, -3.0e38, +3.0e38);
+
+    // TODO: Find a better way to ensure proper stop choice
+    vec2 stop_bias = max(sign(ray_direction.xy), -0.2) + 0.1;
+    float zstop = max(sign(ray_direction.z), 0.0);
+    vec3 p0 = ray_origin;
+    while (iterations > 0)
+    {
+        level = min(max_level, level);
+        vec2 texel_size = level_infos[level].xy;
+        vec2 coord_adjust = level_infos[level].zw;
+
+        vec3 next_stop = vec3(
+            texel_size * floor(p0.xy / texel_size + stop_bias), zstop);
+        float dt = min_component(inv_direction * (next_stop - p0));
+        vec3 p1 = p0 + dt * ray_direction;
+        // TODO: Embed 0.5 in coord_adjust
+        // TODO: Try eliminating clamping
+        vec2 coord = clamp(0.5 * coord_adjust * (p0.xy + p1.xy), 0.0, 1.0);
+        uint packed_range = textureLod(array_ranges, coord, float(level))[0];
+        bool hit = false;
+        float z;
+        // TODO: try using special value at 0 to avoid branching
+        if (packed_range != 0u)
+        {
+            uvec3 range = unpack_range(packed_range);
+            z = texelFetch(depth_arrays, ivec2(range), 0)[0];
+            hit = p1.z >= z || p1.z >= z;
+        }
+        if (hit)
+        {
+            if (level == 0)
+            {
+                color = vec4(z, 0.0, 0.0, 1.0);
+                return true;
+            }
+            --level;
+            // TODO: Move p0 to z-plane intersection
+        }
+        else
+        {
+            p0 = p1;
+            ++level;
+        }
+        --iterations;
     }
 
     return false;
