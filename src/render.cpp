@@ -133,7 +133,7 @@ void apply_viewport_changes(Renderer* r)
     glBindTexture(GL_TEXTURE_2D, r->textures.array_ranges);
     {
         int level = 0;
-        while (level < Renderer::REFERENCE_ABUFFER_HIERARCHY_LEVEL_COUNT)
+        while (level < Renderer::MAX_ABUFFER_LEVELS)
         {
             int level_width = width >> level, level_height = height >> level;
             if (level_width == 0 || level_height == 0)
@@ -141,12 +141,21 @@ void apply_viewport_changes(Renderer* r)
             glTexImage2D(
                 GL_TEXTURE_2D, level, GL_R32UI, level_width, level_height,
                 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+            r->abuffer_level_infos[level].texel_size = {
+                float(1 << level) / width,
+                float(1 << level) / height };
+            r->abuffer_level_infos[level].coord_adjust = {
+                float(width) / float(level_width << level),
+                float(height) / float(level_height << level) };
             ++level;
         }
-        r->abuffer_hierarchy_level_count = level;
+
+        r->abuffer_levels = level;
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
             GL_NEAREST_MIPMAP_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
 }
 
@@ -231,7 +240,7 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
         glBindImageTexture(1, r->textures.depth_arrays,
             0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
-        glUniform4uiv(program->heap_info, 1, (GLuint*)&r->heap_info);
+        glUniform4uiv(program->heap_info, 1, (GLuint const*)&r->heap_info);
 
         glEnableVertexAttribArray(program->position);
         glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
@@ -258,22 +267,26 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
         glBindImageTexture(1, r->textures.depth_arrays,
             0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
 
+        glUniform4uiv(program->heap_info, 1, (GLuint const*)&r->heap_info);
+
         glEnableVertexAttribArray(program->viewport_position);
         glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
         glVertexAttribPointer(
             program->viewport_position, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-        for (int level = 1; level < r->abuffer_hierarchy_level_count; ++level)
+        for (int level = 1; level < r->abuffer_levels; ++level)
         {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, level - 1);
             glFramebufferTexture2D(
                 GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                 r->textures.array_ranges, level);
-            int level_width = r->viewport.width >> level;
-            int level_height = r->viewport.height >> level;
-            glViewport(0, 0, level_width, level_height);
-            glUniform1f(program->base_level, float(level - 1));
+            glViewport(0, 0,
+                r->viewport.width >> level, r->viewport.height >> level);
+            glUniform2fv(program->coord_adjust, 1,
+                (GLfloat const*)&r->abuffer_level_infos[level].coord_adjust);
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 
         glDisableVertexAttribArray(program->viewport_position);
     }

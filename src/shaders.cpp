@@ -68,7 +68,8 @@ DownsampleProgram::DownsampleProgram()
     : ShaderProgram("downsample_v", "downsample_f")
 {
     load_uniform(array_ranges);
-    load_uniform(base_level);
+    load_uniform(heap_info);
+    load_uniform(coord_adjust);
     load_attrib(viewport_position);
 }
 

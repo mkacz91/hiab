@@ -23,6 +23,12 @@ struct HeapInfo
     GLuint yshift;
 };
 
+struct AbufferLevelInfo
+{
+    vec2f texel_size;
+    vec2f coord_adjust;
+};
+
 struct Viewport
 {
     int x, y, width, height;
@@ -30,13 +36,13 @@ struct Viewport
 
 struct Renderer
 {
-    static constexpr int REFERENCE_ABUFFER_HIERARCHY_LEVEL_COUNT = 4;
+    static constexpr int MAX_ABUFFER_LEVELS = 8;
 
     Viewport viewport;
     bool viewport_changed;
     int avg_layers_per_pixel;
-    int abuffer_hierarchy_level_count;
-
+    int abuffer_levels;
+    AbufferLevelInfo abuffer_level_infos[MAX_ABUFFER_LEVELS];
     HeapInfo heap_info;
 
     struct

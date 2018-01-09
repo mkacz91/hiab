@@ -71,7 +71,8 @@ struct FrustumProgram : public ShaderProgram
 struct DownsampleProgram : public ShaderProgram
 {
     GLint array_ranges;
-    GLint base_level;
+    GLint heap_info;
+    GLint coord_adjust;
     GLint viewport_position;
 
     DownsampleProgram();
