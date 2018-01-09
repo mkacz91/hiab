@@ -1,4 +1,5 @@
 #include "math.h"
+#include <iostream>
 
 namespace hiab {
 
@@ -178,6 +179,11 @@ mat4f get_box_mapping_to_symunit(box3f const& box)
 vec3f face_normal(vec3f const& a, vec3f const& b, vec3f const& c)
 {
     return normalize(cross(b - a, c - a));
+}
+
+std::ostream& operator << (std::ostream& ostr, vec2f const& u)
+{
+    return ostr << u.x << " " << u.y;
 }
 
 } // namespace hiab
