@@ -61,19 +61,25 @@ bool cast_ray_hierarchical(
     // underestimation of the checked range, but it's ok. Otherwise may yield
     // NaN when multiplied by 0.
     vec3 inv_direction = clamp(1.0 / ray_direction, -3.0e38, +3.0e38);
+    vec3 direction_sign = sign(ray_direction);
+
+    vec3 frustum_out = max(direction_sign, 0.0);
+    vec3 frustum_in = 1.0 - frustum_out;
+    float in_dt = max_component(vec4(
+        inv_direction * (frustum_in - ray_origin), 0.0));
+    ray_origin += in_dt * ray_direction;
 
     // TODO: Find a better way to ensure proper stop choice
-    vec2 stop_bias = max(sign(ray_direction.xy), -0.2) + 0.1;
-    float zstop = max(sign(ray_direction.z), 0.0);
+    vec3 stop_bias = max(direction_sign, -0.2) + 0.1;
     vec3 p0 = ray_origin;
-    while (iterations > 0)
+    while (iterations > 0 && all_positive((frustum_out - p0) * direction_sign))
     {
         level = min(max_level, level);
         vec2 texel_size = level_infos[level].xy;
         vec2 coord_adjust = level_infos[level].zw;
 
         vec3 next_stop = vec3(
-            texel_size * floor(p0.xy / texel_size + stop_bias), zstop);
+            texel_size * floor(p0.xy / texel_size + stop_bias.xy), stop_bias.z);
         float dt = min_component(inv_direction * (next_stop - p0));
         vec3 p1 = p0 + dt * ray_direction;
         // TODO: Embed 0.5 in coord_adjust

@@ -43,3 +43,14 @@ float min_component(vec3 u)
 {
     return min(u.x, min(u.y, u.z));
 }
+
+float max_component(vec4 u)
+{
+    return max(max(u.x, u.y), max(u.z, u.w));
+}
+
+bool all_positive(vec3 u)
+{
+    // TODO: Check if non-SIMD would be faster
+    return dot(min(u, 0.0), vec3(1.0)) == 0.0;
+}
