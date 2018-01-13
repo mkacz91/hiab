@@ -3,14 +3,9 @@
 #include "prefix.h"
 #include <cmath>
 #include <limits>
+#include <iosfwd>
 
 #undef INFINITY
-
-namespace std {
-
-class std::ostream;
-
-}
 
 namespace hiab {
 
