@@ -48,69 +48,80 @@ bool cast_ray(
     return false;
 }
 
+// TODO: There are still some lone pixels that are somehow being missed.
 bool cast_ray_hierarchical(
     vec3 ray_origin, vec3 ray_direction,
     int level, int iterations,
     out vec4 color)
 {
-    // TODO: get rid of this
+    // TODO: Move to outer scope.
     ray_origin = 0.5 * ray_origin + 0.5;
     ray_direction *= 0.5;
 
     // Clamping the division to avoid infinities. This may result in
     // underestimation of the checked range, but it's ok. Otherwise may yield
     // NaN when multiplied by 0.
-    vec3 inv_direction = clamp(1.0 / ray_direction, -3.0e38, +3.0e38);
-    vec3 direction_sign = sign(ray_direction);
+    const vec3 inv_direction = clamp(1.0 / ray_direction, MIN_FLOAT, MAX_FLOAT);
+    const vec3 direction_sign = sign(ray_direction);
+    const vec3 frustum_in = -min(direction_sign, 0.0); // Other way may yeild infinite in_dt.
+    const vec3 frustum_out = 1.0 - frustum_in;
+    const float default_target_z = 0.5 + 2.0 * (frustum_out.z - 0.5); // Note the margin.
+    const vec2 target_bias = frustum_out.xy; // Coincidental equality
 
-    vec3 frustum_out = max(direction_sign, 0.0);
-    vec3 frustum_in = 1.0 - frustum_out;
+    // TODO: Move to outer scope.
     float in_dt = max_component(vec4(
         inv_direction * (frustum_in - ray_origin), 0.0));
     ray_origin += in_dt * ray_direction;
 
-    // TODO: Find a better way to ensure proper stop choice
-    vec3 stop_bias = max(direction_sign, -0.2) + 0.1;
-    vec3 p0 = ray_origin;
-    while (iterations > 0 && all_positive((frustum_out - p0) * direction_sign))
+    vec3 p = ray_origin;
+    vec2 sample_bias = vec2(0.0); // Helps with p on texel boundary.
+    while (iterations > 0 && all_positive((frustum_out - p) * direction_sign))
     {
         level = min(max_level, level);
         vec2 texel_size = level_infos[level].xy;
-        vec2 coord_adjust = level_infos[level].zw;
+        vec2 sample_adjust = level_infos[level].zw;
 
-        vec3 next_stop = vec3(
-            texel_size * floor(p0.xy / texel_size + stop_bias.xy), stop_bias.z);
-        float dt = min_component(inv_direction * (next_stop - p0));
-        vec3 p1 = p0 + dt * ray_direction;
-        // TODO: Embed 0.5 in coord_adjust
-        // TODO: Try eliminating clamping
-        vec2 coord = clamp(0.5 * coord_adjust * (p0.xy + p1.xy), 0.0, 1.0);
-        uint packed_range = textureLod(array_ranges, coord, float(level))[0];
-        bool hit = false;
-        float z;
-        uvec3 range;
-        // TODO: try using special value at 0 to avoid branching
-        if (packed_range != 0u)
+        vec2 sample_p = p.xy + texel_size * sample_bias;
+        vec3 target = vec3(
+            texel_size * (floor(sample_p / texel_size) + target_bias),
+            default_target_z);
+        ivec2 array_index = ivec2(0);
+        uint packed_range = textureLod(
+            array_ranges, sample_adjust * sample_p, float(level))[0];
+        if (packed_range != 0u) // TODO: Maybe we can get rid of the branch?
         {
-            range = unpack_range(packed_range);
-            z = texelFetch(depth_arrays, ivec2(range), 0)[0];
-            hit = p1.z >= z || p1.z >= z;
+            uvec3 range = unpack_range(packed_range);
+            array_index = ivec2(range);
+            target.z = texelFetch(depth_arrays, array_index, 0)[0];
         }
-        if (hit)
+
+        vec3 dts = inv_direction * (target - p);
+        float xy_dt = min(dts.x, dts.y);
+        float dt = 0.0;
+        bool yolo = false;
+        if (dts.z <= xy_dt)
         {
             if (level == 0)
             {
-                color = texelFetch(color_arrays, ivec2(range), 0);
-                return true;
+                color = texelFetch(color_arrays, array_index, 0);
+                return packed_range != 0u; // TODO: Try eliminating this check.
+            }
+            if (dts.z > 0.0) // TODO: Try eliminating this check.
+            {
+                dt = dts.z;
+                sample_bias = vec2(0.0);
             }
             --level;
-            // TODO: Move p0 to z-plane intersection
         }
         else
         {
-            p0 = p1;
+            dt = xy_dt;
+            vec2 step_mask = sign(xy_dt - dts.xy) + 1.0;
+            sample_bias = 0.25 * direction_sign.xy * step_mask;
             ++level;
         }
+
+        p += dt * ray_direction;
         --iterations;
     }
 

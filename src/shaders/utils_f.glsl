@@ -1,3 +1,6 @@
+const float MAX_FLOAT = intBitsToFloat(2139095039);
+const float MIN_FLOAT = -MAX_FLOAT;
+
 vec4 checker_color()
 {
     bool cx = fract(gl_FragCoord.x / 20.0) < 0.5;
