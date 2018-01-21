@@ -59,6 +59,11 @@ void main()
         colors[i] = tmp_color;
     }
 
+    // TODO: Temporary making only minmax. Switch to general.
+    depths[1] = depths[layer_count - 1];
+    colors[1] = colors[layer_count - 1];
+    layer_count = 2;
+
     uvec3 array_range = alloc_range(
         array_alloc_pointer, heap_info, layer_count);
     for (int i = 0; i < layer_count; ++i)

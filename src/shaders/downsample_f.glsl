@@ -15,6 +15,7 @@ out uint packed_array_range;
 void main()
 {
     float min_z = 2.0;
+    float max_z = -2.0;
     uvec4 ranges = textureGather(array_ranges, coords);
     for (int i = 0; i < 4; ++i)
     {
@@ -24,6 +25,11 @@ void main()
         ivec2 coords = ivec2(unpack_range(range));
         float z = imageLoad(depth_arrays, coords)[0];
         min_z = min(z, min_z);
+
+        // TODO: Temporary minmax. Generalize.
+        ++coords.x;
+        z = imageLoad(depth_arrays, coords)[0];
+        max_z = max(z, max_z);
     }
 
     if (min_z == 2.0)
@@ -32,11 +38,13 @@ void main()
         return;
     }
 
-    uint layer_count = 1;
+    uint layer_count = 2;
     uvec3 array_range = alloc_range(array_alloc_pointer, heap_info, layer_count);
 
-    imageStore(depth_arrays, ivec2(array_range),
-        vec4(min_z, 0.0, 0.0, 0.0));
+    ivec2 out_coords = ivec2(array_range);
+    imageStore(depth_arrays, out_coords,vec4(min_z, 0.0, 0.0, 0.0));
+    ++out_coords.x;
+    imageStore(depth_arrays, out_coords, vec4(max_z, 0.0, 0.0, 0.0));
 
     packed_array_range = pack_range(array_range);
 }

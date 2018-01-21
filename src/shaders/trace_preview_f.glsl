@@ -40,7 +40,7 @@ void main()
             iterations,
             color))
 #else
-    if (!cast_ray_hierarchical(
+    if (!cast_ray_hierarchical_multilayer(
             ray_origin, ray_direction,
             6, iterations,
             color))

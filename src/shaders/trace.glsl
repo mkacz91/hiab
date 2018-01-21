@@ -128,6 +128,123 @@ bool cast_ray_hierarchical(
     return false;
 }
 
+// TODO: There are still some lone pixels that are somehow being missed.
+bool cast_ray_hierarchical_multilayer(
+    vec3 ray_origin, vec3 ray_direction,
+    int level, int iterations,
+    out vec4 color)
+{
+    // TODO: Move to outer scope.
+    ray_origin = 0.5 * ray_origin + 0.5;
+    ray_direction *= 0.5;
+
+    // Clamping the division to avoid infinities. This may result in
+    // underestimation of the checked range, but it's ok. Otherwise may yield
+    // NaN when multiplied by 0.
+    const vec3 inv_direction = clamp(1.0 / ray_direction, MIN_FLOAT, MAX_FLOAT);
+    vec3 direction_sign = sign(ray_direction); // TODO: Strict sign
+    if (direction_sign.z == 0.0)
+        direction_sign.z = 1.0; // TODO: This is debug
+
+    const vec3 frustum_in = -min(direction_sign, 0.0); // Other way may yeild infinite in_dt.
+    const vec3 frustum_out = 1.0 - frustum_in;
+    const float default_target_z = 0.5 + 2.0 * (frustum_out.z - 0.5); // Note the margin.
+    const vec2 target_bias = frustum_out.xy; // Coincidental equality
+    const int max_out_layer_offset = direction_sign.z > 0 ? -1 : -2; // TODO: Try harder. Maybe better name.
+    const int in_layer_offset = direction_sign.z > 0 ? -1 : +1; // TODO: Try harder.
+
+    // TODO: Move to outer scope.
+    float in_dt = max_component(vec4(
+        inv_direction * (frustum_in - ray_origin), 0.0));
+    ray_origin += in_dt * ray_direction;
+
+    vec3 p = ray_origin;
+    vec2 sample_bias = vec2(0.0); // Helps with p on texel boundary.
+    int out_layer = 2 + max_out_layer_offset;
+    while (iterations > 0 && all_positive((frustum_out - p) * direction_sign))
+    {
+        level = min(max_level, level);
+        vec2 texel_size = level_infos[level].xy;
+        vec2 sample_adjust = level_infos[level].zw;
+
+        vec2 sample_p = p.xy + texel_size * sample_bias;
+        vec3 target = vec3(
+            texel_size * (floor(sample_p / texel_size) + target_bias),
+            default_target_z);
+        uint packed_range = textureLod(
+            array_ranges, sample_adjust * sample_p, float(level))[0];
+        ivec2 array_index;
+        if (packed_range != 0u) // TODO: Maybe we can get rid of the branch?
+        {
+            ivec3 range = ivec3(unpack_range(packed_range));
+            int max_out_layer = range[2] + max_out_layer_offset;
+            int out_layer = min(out_layer, max_out_layer);
+
+            float z = texelFetch(depth_arrays, ivec2(range.x + out_layer, range.y), 0)[0];
+            const float initial_z_relation = sign(z - p.z);
+            int out_layer_increment_sign = -int(initial_z_relation); // TODO: Note the zero!
+            if (out_layer_increment_sign == 0)
+                out_layer_increment_sign = 1;
+            int out_layer_increment = 2 * out_layer_increment_sign;
+
+            float z_relation = initial_z_relation;
+            while (z_relation == initial_z_relation && uint(out_layer + out_layer_increment) <= uint(max_out_layer))
+            {
+                out_layer += out_layer_increment;
+                z = texelFetch(depth_arrays, ivec2(range.x + out_layer, range.y), 0)[0];
+                z_relation = sign(z - p.z);
+            }
+
+            bool started_ok = initial_z_relation == direction_sign.z;
+            bool ended_ok = z_relation == direction_sign.z;
+            if (started_ok || ended_ok)
+            {
+                if (!ended_ok)
+                    out_layer -= out_layer_increment;
+                array_index = ivec2(range.x + out_layer + in_layer_offset, range.y);
+                target.z = texelFetch(depth_arrays, array_index, 0)[0];
+            }
+        }
+
+        vec3 dts = inv_direction * (target - p);
+        float xy_dt = min(dts.x, dts.y);
+        float dt = 0.0;
+        if (dts.z <= xy_dt)
+        {
+            if (level == 0) // TODO: Try move outside loop.
+            {
+                if (target.z == default_target_z)
+                    return false;
+                vec4 color0 = texelFetch(color_arrays, array_index, 0);
+                float z0 = target.z;
+                array_index.x -= in_layer_offset;
+                vec4 color1 = texelFetch(color_arrays, array_index, 0);
+                float z1 = texelFetch(depth_arrays, array_index, 0)[0];
+                color = mix(color0, color1, (p.z - z0) / (z1 - z0));
+                return true;
+            }
+            if (dts.z > 0.0) // TODO: Try eliminating this check.
+            {
+                dt = dts.z;
+                sample_bias = vec2(0.0);
+            }
+            --level;
+        }
+        else
+        {
+            dt = xy_dt;
+            vec2 step_mask = sign(xy_dt - dts.xy) + 1.0;
+            sample_bias = 0.25 * direction_sign.xy * step_mask;
+            ++level;
+        }
+
+        p += dt * ray_direction;
+        --iterations;
+    }
+
+    return false;
+}
+
 // If `origin.z > clipz`, the origin is moved along the positive `direction`
 // onto the specified Z-plane and result is `true`. Result is `false` if such
 // operation is not possible due to `direction` being parallel to or pointing
