@@ -152,7 +152,7 @@ void apply_camera_movement()
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         translation.x += 1;
 
-    translation *= 3.0f * scene.dt;
+    translation *= 0.5f * scene.dt;
     move_camera(&camera, translation);
 }
 

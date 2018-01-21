@@ -12,7 +12,7 @@ void init_renderer(Renderer* r)
     r->viewport = { 0, 0, 0, 0 };
     r->viewport_changed = true;
 
-    r->avg_layers_per_pixel = 2;
+    r->avg_layers_per_pixel = 3;
 
     r->programs.object = new ObjectProgram;
     r->programs.layer0 = new Layer0Program;
@@ -300,6 +300,22 @@ void render_scene(Renderer* r, Scene const* scene, Camera const* camera)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(
         r->viewport.x, r->viewport.y, r->viewport.width, r->viewport.height);
+
+    // glUseProgram(r->programs.heads->id);
+    // {
+    //     auto program = r->programs.heads;
+    //
+    //     glActiveTexture(GL_TEXTURE0);
+    //     glBindTexture(GL_TEXTURE_2D, r->textures.array_ranges);
+    //     glUniform1i(program->heads, 0);
+    //     glUniform2i(program->viewport_size, r->viewport.width, r->viewport.height);
+    //     glEnableVertexAttribArray(program->position);
+    //     glBindBuffer(GL_ARRAY_BUFFER, r->buffers.viewport_vertices);
+    //     glVertexAttribPointer(
+    //         program->position, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+    //     glDrawArrays(GL_TRIANGLES, 0, 3);
+    //     glDisableVertexAttribArray(program->position);
+    // }
 
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, r->buffers.node_alloc_pointer);
     glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER,
