@@ -24,12 +24,16 @@ void gl_load_preprocessed_shader_source(
     string const& name, std::ostringstream& ostr, string& line)
 {
     auto fin = open_file_for_reading(name + ".glsl");
+    int line_number = 0;
     while (std::getline(fin, line))
     {
+        ++line_number;
         if (string_starts_with(line, "#include "))
         {
             string include_name = line.substr(9);
+            ostr << "#line " << 1 << '\n';
             gl_load_preprocessed_shader_source(include_name, ostr, line);
+            ostr << "#line " << line_number << '\n';
         }
         else
         {
