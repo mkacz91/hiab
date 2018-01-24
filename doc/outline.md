@@ -1,4 +1,4 @@
-Raymarching a Hierarchical A-Buffer
+Raymarching the Hierarchical A-Buffer
 ===============================================================
 
 * [ ] Abstract
